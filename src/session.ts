@@ -11,10 +11,24 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { MINI_CODE_PROJECTS_DIR } from './config.js'
 import type { ChatMessage } from './types.js'
+import {
+  createContextCollapseState,
+  type CollapseSpan,
+  type ContextCollapseState,
+} from './compact/context-collapse.js'
 
 const MAX_TITLE_LENGTH = 60
 
-type EventType = 'system' | 'user' | 'assistant' | 'progress' | 'tool_call' | 'tool_result' | 'summary' | 'compact_boundary' | 'rename'
+type EventType = 'system' | 'user' | 'assistant' | 'thinking' | 'progress' | 'tool_call' | 'tool_result' | 'summary' | 'compact_boundary' | 'snip_boundary' | 'context_collapse' | 'rename'
+
+export type SnipBoundaryMetadata = {
+  type: 'snip_boundary'
+  removedMessageIds: string[]
+  removedCount: number
+  tokensFreed: number
+  timestamp: string
+  createdAt: string
+}
 
 type SessionEvent = {
   type: EventType
@@ -27,6 +41,8 @@ type SessionEvent = {
   logicalParentUuid?: string | null
   subtype?: string
   compactMetadata?: { trigger: string; preTokens: number; postTokens: number }
+  snipMetadata?: SnipBoundaryMetadata
+  contextCollapseSpan?: CollapseSpan
   title?: string
 }
 
@@ -47,23 +63,42 @@ function roleToType(role: string): EventType {
     case 'system': return 'system'
     case 'user': return 'user'
     case 'assistant': return 'assistant'
+    case 'assistant_thinking': return 'thinking'
     case 'assistant_progress': return 'progress'
     case 'assistant_tool_call': return 'tool_call'
     case 'tool_result': return 'tool_result'
     case 'context_summary': return 'summary'
+    case 'snip_boundary': return 'snip_boundary'
     default: return 'user'
   }
 }
 
+function ensureMessageId(message: ChatMessage): string {
+  if (message.id) return message.id
+  message.id = randomUUID()
+  return message.id
+}
+
 function wrapEvent(message: ChatMessage, sessionId: string, cwd: string, parentUuid: string | null): string {
+  const uuid = ensureMessageId(message)
   const event: SessionEvent = {
     type: roleToType(message.role),
     message,
-    uuid: randomUUID(),
+    uuid,
     timestamp: new Date().toISOString(),
     sessionId,
     cwd,
     parentUuid,
+  }
+  if (message.role === 'snip_boundary') {
+    event.snipMetadata = {
+      type: 'snip_boundary',
+      removedMessageIds: message.removedMessageIds,
+      removedCount: message.removedCount,
+      tokensFreed: message.tokensFreed,
+      timestamp: event.timestamp,
+      createdAt: event.timestamp,
+    }
   }
   return JSON.stringify(event)
 }
@@ -77,8 +112,58 @@ function parseEvent(line: string): SessionEvent | null {
 }
 
 function unwrapMessage(event: SessionEvent): ChatMessage | null {
-  if (event.message) return event.message as ChatMessage
+  if (event.message) {
+    return {
+      ...event.message,
+      id: event.uuid,
+    } as ChatMessage
+  }
   return null
+}
+
+function reconstructSnippedEvents(events: SessionEvent[]): SessionEvent[] {
+  const snipEvents = events.filter(event => (
+    event.type === 'snip_boundary' &&
+    event.snipMetadata &&
+    event.snipMetadata.removedMessageIds.length > 0
+  ))
+
+  if (snipEvents.length === 0) {
+    return events
+  }
+
+  const removedIdToSnips = new Map<string, SessionEvent[]>()
+  for (const snip of snipEvents) {
+    for (const removedId of snip.snipMetadata!.removedMessageIds) {
+      const existing = removedIdToSnips.get(removedId) ?? []
+      existing.push(snip)
+      removedIdToSnips.set(removedId, existing)
+    }
+  }
+
+  const insertedSnips = new Set<string>()
+  const result: SessionEvent[] = []
+
+  for (const event of events) {
+    if (event.type === 'snip_boundary') {
+      continue
+    }
+
+    const snipsForRemovedEvent = removedIdToSnips.get(event.uuid) ?? []
+    if (snipsForRemovedEvent.length > 0) {
+      for (const snip of snipsForRemovedEvent) {
+        if (!insertedSnips.has(snip.uuid)) {
+          result.push(snip)
+          insertedSnips.add(snip.uuid)
+        }
+      }
+      continue
+    }
+
+    result.push(event)
+  }
+
+  return result
 }
 
 function extractTitleFromEvents(lines: string[]): string | undefined {
@@ -114,18 +199,44 @@ async function readLastEventUuid(filePath: string): Promise<string | null> {
   }
 }
 
+async function readExistingEventUuids(filePath: string): Promise<Set<string>> {
+  try {
+    const content = await readFile(filePath, 'utf8')
+    const ids = new Set<string>()
+    for (const line of content.trim().split('\n').filter(Boolean)) {
+      const event = parseEvent(line)
+      if (event?.uuid) {
+        ids.add(event.uuid)
+      }
+    }
+    return ids
+  } catch {
+    return new Set()
+  }
+}
+
 export async function saveSession(
   cwd: string,
   sessionId: string,
   messages: ChatMessage[],
   alreadySavedCount: number = 0,
 ): Promise<void> {
-  const toSave = messages.slice(1).slice(alreadySavedCount)
-  if (toSave.length === 0) return
-
   const dir = projectDir(cwd)
   const filePath = sessionFilePath(cwd, sessionId)
   await mkdir(dir, { recursive: true })
+
+  const existingIds = await readExistingEventUuids(filePath)
+  const nonSystemMessages = messages.slice(1)
+  const toSave = nonSystemMessages.filter((message, index) => {
+    if (message.id && existingIds.has(message.id)) {
+      return false
+    }
+    if (message.id && !existingIds.has(message.id)) {
+      return true
+    }
+    return index >= alreadySavedCount
+  })
+  if (toSave.length === 0) return
 
   let parentUuid = await readLastEventUuid(filePath)
   const lines: string[] = []
@@ -138,6 +249,69 @@ export async function saveSession(
   await appendFile(filePath, lines.join('\n') + '\n', 'utf8')
 }
 
+export async function appendSnipBoundary(
+  cwd: string,
+  sessionId: string,
+  boundaryMessage: Extract<ChatMessage, { role: 'snip_boundary' }>,
+): Promise<void> {
+  const dir = projectDir(cwd)
+  const filePath = sessionFilePath(cwd, sessionId)
+  await mkdir(dir, { recursive: true })
+
+  const lastUuid = await readLastEventUuid(filePath)
+  const now = new Date().toISOString()
+  const uuid = ensureMessageId(boundaryMessage)
+
+  const event: SessionEvent = {
+    type: 'snip_boundary',
+    subtype: 'snip_boundary',
+    message: boundaryMessage,
+    uuid,
+    timestamp: now,
+    sessionId,
+    cwd,
+    parentUuid: null,
+    logicalParentUuid: lastUuid,
+    snipMetadata: {
+      type: 'snip_boundary',
+      removedMessageIds: boundaryMessage.removedMessageIds,
+      removedCount: boundaryMessage.removedCount,
+      tokensFreed: boundaryMessage.tokensFreed,
+      timestamp: now,
+      createdAt: now,
+    },
+  }
+
+  await appendFile(filePath, JSON.stringify(event) + '\n', 'utf8')
+}
+
+export async function appendContextCollapseSpan(
+  cwd: string,
+  sessionId: string,
+  span: CollapseSpan,
+): Promise<void> {
+  const dir = projectDir(cwd)
+  const filePath = sessionFilePath(cwd, sessionId)
+  await mkdir(dir, { recursive: true })
+
+  const lastUuid = await readLastEventUuid(filePath)
+  const now = new Date().toISOString()
+
+  const event: SessionEvent = {
+    type: 'context_collapse',
+    subtype: 'context_collapse',
+    uuid: span.id,
+    timestamp: now,
+    sessionId,
+    cwd,
+    parentUuid: null,
+    logicalParentUuid: lastUuid,
+    contextCollapseSpan: span,
+  }
+
+  await appendFile(filePath, JSON.stringify(event) + '\n', 'utf8')
+}
+
 export async function appendCompactBoundary(
   cwd: string,
   sessionId: string,
@@ -145,6 +319,7 @@ export async function appendCompactBoundary(
   trigger: 'auto' | 'manual',
   preTokens: number,
   postTokens: number,
+  retainedMessages: ChatMessage[] = [],
 ): Promise<void> {
   const dir = projectDir(cwd)
   const filePath = sessionFilePath(cwd, sessionId)
@@ -175,7 +350,19 @@ export async function appendCompactBoundary(
     parentUuid: boundary.uuid,
   }
 
-  await appendFile(filePath, JSON.stringify(boundary) + '\n' + JSON.stringify(summary) + '\n', 'utf8')
+  const lines = [
+    JSON.stringify(boundary),
+    JSON.stringify(summary),
+  ]
+  let parentUuid = summary.uuid
+  for (const message of retainedMessages) {
+    const line = wrapEvent(message, sessionId, cwd, parentUuid)
+    const parsed = JSON.parse(line) as SessionEvent
+    parentUuid = parsed.uuid
+    lines.push(line)
+  }
+
+  await appendFile(filePath, lines.join('\n') + '\n', 'utf8')
 }
 
 export async function loadSession(
@@ -197,15 +384,54 @@ export async function loadSession(
     }
 
     const startLine = lastBoundaryIndex >= 0 ? lastBoundaryIndex + 1 : 0
-    const messages: ChatMessage[] = []
+    const activeEvents: SessionEvent[] = []
     for (let i = startLine; i < lines.length; i++) {
       const event = parseEvent(lines[i]!)
-      if (!event) continue
+      if (event) activeEvents.push(event)
+    }
+
+    const messages: ChatMessage[] = []
+    for (const event of reconstructSnippedEvents(activeEvents)) {
       const msg = unwrapMessage(event)
       if (msg) messages.push(msg)
     }
 
     return messages.length > 0 ? messages : null
+  } catch {
+    return null
+  }
+}
+
+export async function loadContextCollapseState(
+  cwd: string,
+  sessionId: string,
+): Promise<ContextCollapseState | null> {
+  try {
+    const content = await readFile(sessionFilePath(cwd, sessionId), 'utf8')
+    const lines = content.trim().split('\n').filter(Boolean)
+
+    let lastBoundaryIndex = -1
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const event = parseEvent(lines[i]!)
+      if (event?.type === 'compact_boundary') {
+        lastBoundaryIndex = i
+        break
+      }
+    }
+
+    const state = createContextCollapseState()
+    for (let i = lastBoundaryIndex + 1; i < lines.length; i++) {
+      const event = parseEvent(lines[i]!)
+      if (event?.type !== 'context_collapse' || !event.contextCollapseSpan) {
+        continue
+      }
+      if (event.contextCollapseSpan.status !== 'committed') {
+        continue
+      }
+      state.spans.push(event.contextCollapseSpan)
+    }
+
+    return state.spans.length > 0 ? state : null
   } catch {
     return null
   }
@@ -426,9 +652,13 @@ export async function loadTranscript(
     const lines = content.trim().split('\n').filter(Boolean)
     const entries: PersistedTranscriptEntry[] = []
 
-    for (const line of lines) {
-      const event = parseEvent(line)
-      if (!event) continue
+    const events = reconstructSnippedEvents(
+      lines
+        .map(line => parseEvent(line))
+        .filter((event): event is SessionEvent => Boolean(event)),
+    )
+
+    for (const event of events) {
 
       const msg = (event.message ?? {}) as Record<string, unknown>
 
@@ -460,6 +690,12 @@ export async function loadTranscript(
           entries.push({
             kind: 'assistant',
             body: `[Context compacted: ${event.compactMetadata?.preTokens ?? '?'} → ${event.compactMetadata?.postTokens ?? '?'} tokens]`,
+          })
+          break
+        case 'snip_boundary':
+          entries.push({
+            kind: 'assistant',
+            body: `[Snipped earlier context: removed ${event.snipMetadata?.removedCount ?? '?'} messages, freed ~${event.snipMetadata?.tokensFreed ?? '?'} tokens]`,
           })
           break
       }

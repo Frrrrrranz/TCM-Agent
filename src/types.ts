@@ -11,30 +11,48 @@ export type ProviderUsageMetadata = {
   usageStaleReason?: string
 }
 
+export type ProviderThinkingBlock = {
+  type: 'thinking' | 'redacted_thinking'
+  [key: string]: unknown
+}
+
+export type MessageIdentity = {
+  id?: string
+}
+
 export type ChatMessage =
-  | { role: 'system'; content: string }
-  | { role: 'user'; content: string }
-  | ({ role: 'assistant'; content: string } & ProviderUsageMetadata)
-  | ({ role: 'assistant_progress'; content: string } & ProviderUsageMetadata)
+  | ({ role: 'system'; content: string } & MessageIdentity)
+  | ({ role: 'user'; content: string } & MessageIdentity)
+  | ({ role: 'assistant_thinking'; blocks: ProviderThinkingBlock[] } & MessageIdentity)
+  | ({ role: 'assistant'; content: string } & ProviderUsageMetadata & MessageIdentity)
+  | ({ role: 'assistant_progress'; content: string } & ProviderUsageMetadata & MessageIdentity)
   | ({
       role: 'assistant_tool_call'
       toolUseId: string
       toolName: string
       input: unknown
-    } & ProviderUsageMetadata)
-  | {
+    } & ProviderUsageMetadata & MessageIdentity)
+  | ({
       role: 'tool_result'
       toolUseId: string
       toolName: string
       content: string
       isError: boolean
-    }
-  | {
+    } & MessageIdentity)
+  | ({
       role: 'context_summary'
       content: string
       compressedCount: number
       timestamp: number
-    }
+    } & MessageIdentity)
+  | ({
+      role: 'snip_boundary'
+      content: string
+      removedMessageIds: string[]
+      removedCount: number
+      tokensFreed: number
+      timestamp: number
+    } & MessageIdentity)
 
 export type ToolCall = {
   id: string
@@ -53,6 +71,7 @@ export type AgentStep =
       type: 'assistant'
       content: string
       kind?: 'final' | 'progress'
+      thinkingBlocks?: ProviderThinkingBlock[]
       diagnostics?: StepDiagnostics
       usage?: ProviderUsage
     }
@@ -61,6 +80,7 @@ export type AgentStep =
       calls: ToolCall[]
       content?: string
       contentKind?: 'progress'
+      thinkingBlocks?: ProviderThinkingBlock[]
       diagnostics?: StepDiagnostics
       usage?: ProviderUsage
     }

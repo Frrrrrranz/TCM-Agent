@@ -1,7 +1,15 @@
 import type { ToolRegistry } from './tool.js'
-import type { ChatMessage, ModelAdapter, ProviderUsage, StepDiagnostics, ToolCall } from './types.js'
+import type {
+  ChatMessage,
+  ModelAdapter,
+  ProviderThinkingBlock,
+  ProviderUsage,
+  StepDiagnostics,
+  ToolCall,
+} from './types.js'
 import type { RuntimeConfig } from './config.js'
 import { resolveMaxOutputTokens } from './utils/context.js'
+import { buildAnthropicSnipBoundaryText } from './compact/snipCompact.js'
 
 const DEFAULT_MAX_RETRIES = 4
 const BASE_RETRY_DELAY_MS = 500
@@ -138,6 +146,10 @@ function isToolUseBlock(block: AnthropicContentBlock): block is Extract<Anthropi
   )
 }
 
+function isThinkingBlock(block: AnthropicContentBlock): block is ProviderThinkingBlock {
+  return block.type === 'thinking' || block.type === 'redacted_thinking'
+}
+
 function parseAssistantText(content: string): {
   content: string
   kind?: 'final' | 'progress'
@@ -238,6 +250,13 @@ function toAnthropicMessages(messages: ChatMessage[]): {
       continue
     }
 
+    if (message.role === 'assistant_thinking') {
+      for (const block of message.blocks) {
+        pushAnthropicMessage(converted, 'assistant', block)
+      }
+      continue
+    }
+
     if (message.role === 'assistant' || message.role === 'assistant_progress') {
       pushAnthropicMessage(
         converted,
@@ -260,6 +279,13 @@ function toAnthropicMessages(messages: ChatMessage[]): {
     if (message.role === 'context_summary') {
       pushAnthropicMessage(converted, 'user', toTextBlock(
         `[Context Summary from earlier conversation]\n${message.content}`,
+      ))
+      continue
+    }
+
+    if (message.role === 'snip_boundary') {
+      pushAnthropicMessage(converted, 'user', toTextBlock(
+        buildAnthropicSnipBoundaryText(),
       ))
       continue
     }
@@ -348,6 +374,7 @@ export class AnthropicModelAdapter implements ModelAdapter {
 
     const toolCalls: ToolCall[] = []
     const textParts: string[] = []
+    const thinkingBlocks: ProviderThinkingBlock[] = []
     const blockTypes: string[] = []
     const ignoredBlockTypes = new Set<string>()
 
@@ -365,6 +392,11 @@ export class AnthropicModelAdapter implements ModelAdapter {
           toolName: block.name,
           input: block.input,
         })
+        continue
+      }
+
+      if (isThinkingBlock(block)) {
+        thinkingBlocks.push(block)
         continue
       }
 
@@ -388,6 +420,7 @@ export class AnthropicModelAdapter implements ModelAdapter {
           parsedText.kind === 'progress'
             ? ('progress' as const)
             : undefined,
+        thinkingBlocks,
         diagnostics,
         usage,
       }
@@ -397,6 +430,7 @@ export class AnthropicModelAdapter implements ModelAdapter {
       type: 'assistant' as const,
       content: parsedText.content,
       kind: parsedText.kind,
+      thinkingBlocks,
       diagnostics,
       usage,
     }

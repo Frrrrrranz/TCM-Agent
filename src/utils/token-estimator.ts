@@ -34,11 +34,13 @@ export type ContextStats = {
 const CHARS_PER_TOKEN: Record<string, number> = {
   system: 3.5,
   user: 3.0,
+  assistant_thinking: 3.0,
   assistant: 3.5,
   assistant_progress: 3.5,
   assistant_tool_call: 2.5,
   tool_result: 2.0,
   context_summary: 3.5,
+  snip_boundary: 3.5,
 }
 
 const CLEAR_MARKER = '[Output cleared for context space]'
@@ -50,6 +52,12 @@ function messageContentLength(message: ChatMessage): number {
     case 'assistant':
     case 'assistant_progress':
       return message.content.length
+    case 'assistant_thinking':
+      try {
+        return JSON.stringify(message.blocks).length
+      } catch {
+        return 0
+      }
     case 'assistant_tool_call':
       try {
         return JSON.stringify(message.input).length
@@ -59,6 +67,8 @@ function messageContentLength(message: ChatMessage): number {
     case 'tool_result':
       return message.content.length
     case 'context_summary':
+      return message.content.length
+    case 'snip_boundary':
       return message.content.length
     default:
       return 0

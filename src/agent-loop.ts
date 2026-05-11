@@ -1,8 +1,24 @@
 import type { ToolRegistry } from './tool.js'
-import type { ChatMessage, CompressionResult, ModelAdapter, ProviderUsage } from './types.js'
+import type {
+  ChatMessage,
+  CompressionResult,
+  ModelAdapter,
+  ProviderThinkingBlock,
+  ProviderUsage,
+} from './types.js'
 import type { PermissionManager } from './permissions.js'
 import { microcompact } from './compact/microcompact.js'
 import { autoCompact } from './compact/auto-compact.js'
+import {
+  applyContextCollapseIfNeeded,
+  createContextCollapseState,
+  type ContextCollapseResult,
+  type ContextCollapseState,
+} from './compact/context-collapse.js'
+import {
+  snipCompactConversation,
+  type SnipCompactResult,
+} from './compact/snipCompact.js'
 import { computeContextStats } from './utils/token-estimator.js'
 import {
   applyToolResultBudget,
@@ -76,6 +92,7 @@ function formatDiagnostics(args: {
 function isRecoverableThinkingStop(args: {
   isEmpty: boolean
   stopReason?: string
+  blockTypes?: string[]
   ignoredBlockTypes?: string[]
 }): boolean {
   if (!args.isEmpty) {
@@ -86,7 +103,10 @@ function isRecoverableThinkingStop(args: {
     return false
   }
 
-  return (args.ignoredBlockTypes ?? []).includes('thinking')
+  return (
+    (args.blockTypes ?? []).includes('thinking') ||
+    (args.ignoredBlockTypes ?? []).includes('thinking')
+  )
 }
 
 export async function runAgentTurn(args: {
@@ -101,9 +121,12 @@ export async function runAgentTurn(args: {
   onToolResult?: (toolName: string, output: string, isError: boolean) => void
   onAssistantMessage?: (content: string) => void
   onProgressMessage?: (content: string) => void
-  onAutoCompact?: (result: CompressionResult) => void
+  onAutoCompact?: (result: CompressionResult) => void | Promise<void>
+  onSnipCompact?: (result: SnipCompactResult) => void | Promise<void>
+  onContextCollapse?: (result: ContextCollapseResult) => void | Promise<void>
   onContextStats?: (stats: import('./utils/token-estimator.js').ContextStats) => void
   contentReplacementState?: ContentReplacementState
+  contextCollapseState?: ContextCollapseState
 }): Promise<ChatMessage[]> {
   const maxSteps = args.maxSteps
   const modelName = args.modelName ?? ''
@@ -112,8 +135,20 @@ export async function runAgentTurn(args: {
   let recoverableThinkingRetryCount = 0
   let toolErrorCount = 0
   let sawToolResultThisTurn = false
+  let snippedThisTurn = false
   const contentReplacementState =
     args.contentReplacementState ?? createContentReplacementState()
+  let contextCollapseState =
+    args.contextCollapseState ?? createContextCollapseState()
+
+  const replaceContextCollapseState = (nextState: ContextCollapseState) => {
+    contextCollapseState = nextState
+    if (args.contextCollapseState) {
+      args.contextCollapseState.spans = [...nextState.spans]
+      args.contextCollapseState.enabled = nextState.enabled
+      args.contextCollapseState.consecutiveFailures = nextState.consecutiveFailures
+    }
+  }
 
   const pushContinuationPrompt = (content: string) => {
     messages = [
@@ -125,28 +160,82 @@ export async function runAgentTurn(args: {
     ]
   }
 
+  const appendThinkingBlocks = (blocks: ProviderThinkingBlock[] | undefined) => {
+    if (!blocks || blocks.length === 0) return
+    messages = [
+      ...messages,
+      {
+        role: 'assistant_thinking',
+        blocks,
+      },
+    ]
+  }
+
   for (let step = 0; maxSteps == null || step < maxSteps; step++) {
-    // Microcompact: lightweight tool_result cleanup on every step
+    let latestStats: import('./utils/token-estimator.js').ContextStats | null = null
+    let modelMessages = messages
+
     if (modelName) {
+      latestStats = computeContextStats(messages, modelName)
+
+      if (!snippedThisTurn) {
+        const snipResult = await snipCompactConversation({
+          messages,
+          contextStats: latestStats,
+          modelContextWindow: latestStats.effectiveInput,
+        })
+        if (snipResult.didSnip) {
+          messages = snipResult.messages
+          snippedThisTurn = true
+          await args.onSnipCompact?.(snipResult)
+          latestStats = computeContextStats(messages, modelName)
+          args.onContextStats?.(latestStats)
+        }
+      }
+
+      const beforeMicrocompact = messages
       messages = microcompact(messages, modelName)
+      if (messages !== beforeMicrocompact) {
+        latestStats = computeContextStats(messages, modelName)
+        args.onContextStats?.(latestStats)
+      }
+
+      const collapseResult = await applyContextCollapseIfNeeded(
+        messages,
+        modelName,
+        args.model,
+        contextCollapseState,
+      )
+      replaceContextCollapseState(collapseResult.state)
+      modelMessages = collapseResult.messages
+      if (collapseResult.collapsed) {
+        await args.onContextCollapse?.(collapseResult)
+        latestStats = computeContextStats(modelMessages, modelName)
+        args.onContextStats?.(latestStats)
+      } else if (modelMessages !== messages) {
+        latestStats = computeContextStats(modelMessages, modelName)
+        args.onContextStats?.(latestStats)
+      }
     }
 
     // AutoCompact: LLM-based compression when context is critical (first step only)
     if (step === 0 && modelName) {
-      const stats = computeContextStats(messages, modelName)
-      args.onContextStats?.(stats)
-      if (stats.warningLevel === 'critical' || stats.warningLevel === 'blocked') {
-        const result = await autoCompact(messages, modelName, args.model)
+      latestStats = latestStats ?? computeContextStats(modelMessages, modelName)
+      args.onContextStats?.(latestStats)
+      if (latestStats.warningLevel === 'critical' || latestStats.warningLevel === 'blocked') {
+        const result = await autoCompact(modelMessages, modelName, args.model)
         if (result) {
           messages = result.messages
-          args.onAutoCompact?.(result)
-          const updatedStats = computeContextStats(messages, modelName)
-          args.onContextStats?.(updatedStats)
+          modelMessages = messages
+          replaceContextCollapseState(createContextCollapseState())
+          await args.onAutoCompact?.(result)
+          latestStats = computeContextStats(messages, modelName)
+          args.onContextStats?.(latestStats)
         }
       }
     }
 
-    const next = await args.model.next(messages)
+    const next = await args.model.next(modelMessages)
 
     if (next.type === 'assistant') {
       const isEmpty = isEmptyAssistantResponse(next.content)
@@ -159,6 +248,7 @@ export async function runAgentTurn(args: {
         })
       ) {
         args.onProgressMessage?.(next.content)
+        appendThinkingBlocks(next.thinkingBlocks)
         messages = [
           ...messages,
           { role: 'assistant_progress', content: next.content },
@@ -175,6 +265,7 @@ export async function runAgentTurn(args: {
         isRecoverableThinkingStop({
           isEmpty,
           stopReason: next.diagnostics?.stopReason,
+          blockTypes: next.diagnostics?.blockTypes,
           ignoredBlockTypes: next.diagnostics?.ignoredBlockTypes,
         }) &&
         recoverableThinkingRetryCount < 3
@@ -222,6 +313,7 @@ export async function runAgentTurn(args: {
             : `模型返回空响应，已停止当前回合。请重试，或要求模型继续。${diagnosticsSuffix}`
 
         args.onAssistantMessage?.(fallbackContent)
+        appendThinkingBlocks(next.thinkingBlocks)
         return [
           ...messages,
           {
@@ -235,6 +327,7 @@ export async function runAgentTurn(args: {
         role: 'assistant',
         content: next.content,
       }
+      appendThinkingBlocks(next.thinkingBlocks)
       const withAssistant: ChatMessage[] = [
         ...messages,
         withProviderUsage(assistantMessage, next.usage),
@@ -246,6 +339,8 @@ export async function runAgentTurn(args: {
 
       return withAssistant
     }
+
+    appendThinkingBlocks(next.thinkingBlocks)
 
     if (next.content) {
       if (next.contentKind === 'progress') {
@@ -315,9 +410,7 @@ export async function runAgentTurn(args: {
       budgetedResults.results.map(result => [result.toolUseId, result]),
     )
 
-    for (let i = 0; i < executedToolResults.length; i++) {
-      const entry = executedToolResults[i]
-      const toolResult = toolResultById.get(entry.call.id) ?? entry.toolResult
+    const toolCallMessages = executedToolResults.map((entry, i) => {
       const toolCallMessage: ChatMessage = {
         role: 'assistant_tool_call',
         toolUseId: entry.call.id,
@@ -325,17 +418,24 @@ export async function runAgentTurn(args: {
         input: entry.call.input,
       }
 
-      messages = [
-        ...messages,
-        withProviderUsage(
-          toolCallMessage,
-          i === executedToolResults.length - 1 ? next.usage : undefined,
-        ),
-        toolResult,
-      ]
+      return withProviderUsage(
+        toolCallMessage,
+        i === executedToolResults.length - 1 ? next.usage : undefined,
+      )
+    })
+    const toolResults = executedToolResults.map(entry =>
+      toolResultById.get(entry.call.id) ?? entry.toolResult,
+    )
 
-      if (entry.result.awaitUser) {
-        const question = entry.result.output.trim()
+    messages = [
+      ...messages,
+      ...toolCallMessages,
+      ...toolResults,
+    ]
+
+    const awaitUserEntry = executedToolResults.find(entry => entry.result.awaitUser)
+    if (awaitUserEntry) {
+      const question = awaitUserEntry.result.output.trim()
         if (question.length > 0) {
           args.onAssistantMessage?.(question)
           messages = [
@@ -347,7 +447,6 @@ export async function runAgentTurn(args: {
           ]
         }
         return messages
-      }
     }
   }
 

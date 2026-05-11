@@ -10,13 +10,24 @@ import {
   listSessions,
   renameSession,
   appendCompactBoundary,
+  appendSnipBoundary,
+  appendContextCollapseSpan,
+  loadContextCollapseState,
   loadTranscript,
   forkSession,
   cleanupExpiredSessions,
   listAllProjects,
 } from '../src/session.js'
 import { MINI_CODE_PROJECTS_DIR } from '../src/config.js'
-import type { ChatMessage } from '../src/types.js'
+import type { AgentStep, ChatMessage, ModelAdapter } from '../src/types.js'
+import type { ContextStats } from '../src/utils/token-estimator.js'
+import {
+  estimateMessagesTokens,
+  tokenCountWithEstimation,
+} from '../src/utils/token-estimator.js'
+import { snipCompactConversation } from '../src/compact/snipCompact.js'
+import { compactConversation } from '../src/compact/compact.js'
+import type { CollapseSpan } from '../src/compact/context-collapse.js'
 
 const testDir = path.join(os.tmpdir(), 'minicode-session-test')
 
@@ -33,6 +44,60 @@ function makeMessages(count: number): ChatMessage[] {
 
 function projectDirName(cwd: string): string {
   return cwd.replace(/[/\\:]+/g, '-').replace(/^-+/, '')
+}
+
+function contextStats(messages: ChatMessage[], effectiveInput = 20_000): ContextStats {
+  const accounting = tokenCountWithEstimation(messages)
+  const utilization = accounting.totalTokens / effectiveInput
+  return {
+    estimatedTokens: estimateMessagesTokens(messages),
+    totalTokens: accounting.totalTokens,
+    providerUsageTokens: accounting.providerUsageTokens,
+    contextWindow: effectiveInput,
+    effectiveInput,
+    utilization,
+    warningLevel:
+      utilization >= 0.95
+        ? 'blocked'
+        : utilization >= 0.85
+          ? 'critical'
+          : utilization >= 0.50
+            ? 'warning'
+            : 'normal',
+    accounting,
+  }
+}
+
+function assertNoToolOrphans(messages: ChatMessage[]): void {
+  const calls = new Set(
+    messages
+      .filter((message): message is Extract<ChatMessage, { role: 'assistant_tool_call' }> => (
+        message.role === 'assistant_tool_call'
+      ))
+      .map(message => message.toolUseId),
+  )
+  const results = new Set(
+    messages
+      .filter((message): message is Extract<ChatMessage, { role: 'tool_result' }> => (
+        message.role === 'tool_result'
+      ))
+      .map(message => message.toolUseId),
+  )
+
+  for (const id of calls) {
+    assert.ok(results.has(id), `tool call ${id} should keep its result`)
+  }
+  for (const id of results) {
+    assert.ok(calls.has(id), `tool result ${id} should keep its call`)
+  }
+}
+
+function retainedMessagesAfterCompact(
+  result: NonNullable<Awaited<ReturnType<typeof compactConversation>>>,
+): ChatMessage[] {
+  return result.messages.filter(message => (
+    message.role !== 'system' && message !== result.summary
+  ))
 }
 
 async function cleanupAll() {
@@ -96,6 +161,7 @@ describe('session persistence', () => {
       { role: 'system', content: 'sys' },
       { role: 'user', content: 'hello' },
       { role: 'assistant', content: 'hi' },
+      { role: 'assistant_thinking', blocks: [{ type: 'thinking', thinking: 'hidden reasoning', signature: 'sig' }] },
       { role: 'assistant_tool_call', toolUseId: 'c1', toolName: 'read_file', input: { path: '/a.ts' } },
       { role: 'tool_result', toolUseId: 'c1', toolName: 'read_file', content: 'file contents', isError: false },
       { role: 'context_summary', content: 'summary text', compressedCount: 5, timestamp: 12345 },
@@ -104,12 +170,13 @@ describe('session persistence', () => {
     await saveSession(cwd, 'types001', messages)
     const loaded = await loadSession(cwd, 'types001')
 
-    assert.equal(loaded!.length, 5)
+    assert.equal(loaded!.length, 6)
     assert.equal(loaded![0].role, 'user')
     assert.equal(loaded![1].role, 'assistant')
-    assert.equal(loaded![2].role, 'assistant_tool_call')
-    assert.equal(loaded![3].role, 'tool_result')
-    assert.equal(loaded![4].role, 'context_summary')
+    assert.equal(loaded![2].role, 'assistant_thinking')
+    assert.equal(loaded![3].role, 'assistant_tool_call')
+    assert.equal(loaded![4].role, 'tool_result')
+    assert.equal(loaded![5].role, 'context_summary')
   })
 
   it('stores events in envelope jsonl format', async () => {
@@ -289,6 +356,143 @@ describe('session persistence', () => {
     assert.equal(loaded![2].content, 'after compact assistant')
   })
 
+  it('loadSession filters messages removed by snip_boundary metadata', async () => {
+    const cwd = path.join(testDir, 'snip-load')
+    await saveSession(cwd, 'snip001', makeMessages(8), 0)
+
+    const beforeSnip = await loadSession(cwd, 'snip001')
+    assert.ok(beforeSnip)
+    const removed = beforeSnip!.slice(2, 8)
+    const removedIds = removed.map(message => message.id!).filter(Boolean)
+    assert.ok(removedIds.length >= 6)
+
+    await appendSnipBoundary(cwd, 'snip001', {
+      role: 'snip_boundary',
+      content: '[Snipped earlier conversation segment]',
+      removedMessageIds: removedIds,
+      removedCount: removedIds.length,
+      tokensFreed: 2_500,
+      timestamp: 12345,
+    })
+
+    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const content = await readFile(path.join(pdir, 'snip001.jsonl'), 'utf8')
+    const snipEvent = content
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+      .find(event => event.type === 'snip_boundary')
+    assert.ok(snipEvent)
+    assert.deepEqual(snipEvent.snipMetadata.removedMessageIds, removedIds)
+    assert.equal(snipEvent.snipMetadata.removedCount, removedIds.length)
+    assert.equal(snipEvent.snipMetadata.tokensFreed, 2_500)
+    assert.equal(typeof snipEvent.snipMetadata.timestamp, 'string')
+
+    const loaded = await loadSession(cwd, 'snip001')
+    assert.ok(loaded)
+    const loadedIds = new Set(loaded!.map(message => message.id))
+    for (const removedId of removedIds) {
+      assert.equal(loadedIds.has(removedId), false)
+    }
+    const boundaryIndex = loaded!.findIndex(message => message.role === 'snip_boundary')
+    assert.ok(boundaryIndex >= 0)
+    assert.equal(loaded![boundaryIndex]!.role, 'snip_boundary')
+  })
+
+  it('restores correctly across snip, save, load, compact, save, and load', async () => {
+    const cwd = path.join(testDir, 'snip-compact-load')
+    const sessionId = 'snipcmp1'
+    const messages: ChatMessage[] = [
+      { role: 'system', content: 'System' },
+      { role: 'user', content: 'Opening task' },
+    ]
+    for (let i = 0; i < 24; i++) {
+      messages.push(
+        { role: 'assistant', content: `Old assistant ${i}: ${'a'.repeat(2_000)}` },
+        { role: 'user', content: `Old user ${i}: ${'b'.repeat(2_000)}` },
+      )
+    }
+    messages.push(
+      { role: 'assistant', content: 'Recent setup before tool' },
+      { role: 'assistant_tool_call', toolUseId: 'tail-tool', toolName: 'read_file', input: { path: 'tail.ts' } },
+      { role: 'tool_result', toolUseId: 'tail-tool', toolName: 'read_file', content: 'Tail command output', isError: false },
+      { role: 'assistant', content: 'Recent answer after tool' },
+      { role: 'user', content: 'Current task stays visible' },
+    )
+
+    await saveSession(cwd, sessionId, messages)
+    const loadedBeforeSnip = await loadSession(cwd, sessionId)
+    assert.ok(loadedBeforeSnip)
+
+    const activeBeforeSnip: ChatMessage[] = [
+      { role: 'system', content: 'System' },
+      ...loadedBeforeSnip!,
+    ]
+    const snipResult = await snipCompactConversation({
+      messages: activeBeforeSnip,
+      contextStats: contextStats(activeBeforeSnip, 20_000),
+      modelContextWindow: 20_000,
+    })
+    assert.equal(snipResult.didSnip, true)
+    assert.equal(snipResult.boundaryMessage?.role, 'snip_boundary')
+    await appendSnipBoundary(
+      cwd,
+      sessionId,
+      snipResult.boundaryMessage as Extract<ChatMessage, { role: 'snip_boundary' }>,
+    )
+    await saveSession(cwd, sessionId, snipResult.messages, 0)
+
+    const loadedAfterSnip = await loadSession(cwd, sessionId)
+    assert.ok(loadedAfterSnip)
+    const loadedAfterSnipIds = new Set(loadedAfterSnip!.map(message => message.id))
+    for (const removedId of snipResult.removedMessageIds) {
+      assert.equal(loadedAfterSnipIds.has(removedId), false)
+    }
+    assert.ok(loadedAfterSnip!.some(message => message.role === 'snip_boundary'))
+    assert.ok(loadedAfterSnip!.some(message => (
+      message.role === 'tool_result' && message.toolUseId === 'tail-tool'
+    )))
+    assertNoToolOrphans(loadedAfterSnip!)
+
+    const adapter: ModelAdapter = {
+      async next(): Promise<AgentStep> {
+        return { type: 'assistant', content: '<summary>Compacted after snip.</summary>' }
+      },
+    }
+    const compactResult = await compactConversation(
+      [{ role: 'system', content: 'System' }, ...loadedAfterSnip!],
+      adapter,
+    )
+    assert.ok(compactResult)
+    await appendCompactBoundary(
+      cwd,
+      sessionId,
+      compactResult.summary.content,
+      'manual',
+      compactResult.tokensBefore,
+      compactResult.tokensAfter,
+      retainedMessagesAfterCompact(compactResult),
+    )
+    await saveSession(cwd, sessionId, compactResult.messages, compactResult.messages.length - 1)
+
+    const loadedAfterCompact = await loadSession(cwd, sessionId)
+    assert.ok(loadedAfterCompact)
+    const loadedAfterCompactIds = new Set(loadedAfterCompact!.map(message => message.id))
+    for (const removedId of snipResult.removedMessageIds) {
+      assert.equal(loadedAfterCompactIds.has(removedId), false)
+    }
+    assert.ok(loadedAfterCompact!.some(message => (
+      'content' in message && message.content === 'Current task stays visible'
+    )))
+    assert.ok(loadedAfterCompact!.some(message => (
+      message.role === 'assistant_tool_call' && message.toolUseId === 'tail-tool'
+    )))
+    assert.ok(loadedAfterCompact!.some(message => (
+      message.role === 'tool_result' && message.toolUseId === 'tail-tool'
+    )))
+    assertNoToolOrphans(loadedAfterCompact!)
+  })
+
   it('loadTranscript rebuilds from session envelopes', async () => {
     const cwd = path.join(testDir, 'tx-rebuild')
     const messages: ChatMessage[] = [
@@ -312,6 +516,41 @@ describe('session persistence', () => {
     const cwd = path.join(testDir, 'no-tx')
     const loaded = await loadTranscript(cwd, 'nonexist')
     assert.equal(loaded, null)
+  })
+
+  it('persists context collapse spans without changing loaded messages', async () => {
+    const cwd = path.join(testDir, 'collapse-state')
+    const sessionId = 'collapse1'
+    const messages = makeMessages(2)
+
+    await saveSession(cwd, sessionId, messages)
+    const loadedBefore = await loadSession(cwd, sessionId)
+    assert.ok(loadedBefore)
+    assert.equal(loadedBefore!.length, 4)
+
+    const collapsedIds = loadedBefore!.slice(0, 2).map(message => message.id!)
+    const span: CollapseSpan = {
+      id: 'collapse-test-span',
+      startMessageId: collapsedIds[0]!,
+      endMessageId: collapsedIds[collapsedIds.length - 1]!,
+      messageIds: collapsedIds,
+      summary: 'The first exchange was summarized for model-visible context only.',
+      tokensBefore: 4_000,
+      tokensAfter: 120,
+      status: 'committed',
+      createdAt: 123,
+      reason: 'context_pressure',
+    }
+
+    await appendContextCollapseSpan(cwd, sessionId, span)
+
+    const loadedAfter = await loadSession(cwd, sessionId)
+    assert.deepEqual(loadedAfter, loadedBefore)
+
+    const collapseState = await loadContextCollapseState(cwd, sessionId)
+    assert.ok(collapseState)
+    assert.deepEqual(collapseState!.spans, [span])
+    assert.equal(collapseState!.enabled, true)
   })
 
   it('saveSession writes parentUuid chain linking consecutive events', async () => {

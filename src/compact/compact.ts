@@ -10,43 +10,49 @@ import { buildCompactSummaryPrompt, parseSummaryFromResponse } from './prompt.js
 
 function groupMessagesByApiRound(messages: ChatMessage[]): ChatMessage[][] {
   const groups: ChatMessage[][] = []
-  let currentGroup: ChatMessage[] = []
 
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i]
+  for (let i = 0; i < messages.length;) {
+    const group: ChatMessage[] = []
+    let cursor = i
 
-    if (msg.role === 'assistant_tool_call') {
-      currentGroup.push(msg)
-      if (i + 1 < messages.length && messages[i + 1].role === 'tool_result') {
-        currentGroup.push(messages[i + 1])
-        i++
-      }
-      groups.push(currentGroup)
-      currentGroup = []
+    if (messages[cursor]?.role === 'assistant_thinking') {
+      group.push(messages[cursor])
+      cursor += 1
+    }
+
+    while (messages[cursor]?.role === 'assistant_tool_call') {
+      group.push(messages[cursor])
+      cursor += 1
+    }
+
+    while (messages[cursor]?.role === 'tool_result') {
+      group.push(messages[cursor])
+      cursor += 1
+    }
+
+    if (group.some(msg => msg.role === 'assistant_tool_call' || msg.role === 'tool_result')) {
+      groups.push(group)
+      i = cursor
       continue
     }
 
-    if (msg.role === 'tool_result') {
-      currentGroup.push(msg)
-      if (i + 1 < messages.length && messages[i + 1].role !== 'tool_result') {
-        groups.push(currentGroup)
-        currentGroup = []
-      }
-      continue
-    }
-
-    if (currentGroup.length > 0) {
-      groups.push(currentGroup)
-      currentGroup = []
-    }
-    groups.push([msg])
-  }
-
-  if (currentGroup.length > 0) {
-    groups.push(currentGroup)
+    groups.push([messages[i]])
+    i += 1
   }
 
   return groups
+}
+
+function alignBoundaryToApiRound(messages: ChatMessage[], boundary: number): number {
+  let start = 0
+  for (const group of groupMessagesByApiRound(messages)) {
+    const end = start + group.length
+    if (boundary > start && boundary < end) {
+      return start
+    }
+    start = end
+  }
+  return boundary
 }
 
 function findRetentionBoundary(messages: ChatMessage[]): number {
@@ -76,23 +82,7 @@ function findRetentionBoundary(messages: ChatMessage[]): number {
     boundary = Math.max(1, messages.length - RETENTION.MIN_KEEP_MESSAGES)
   }
 
-  // Ensure we don't split tool_use/tool_result pairs.
-  // If boundary lands on a tool_result, scan backward to find its matching tool_use.
-  if (boundary < messages.length) {
-    const msg = messages[boundary]
-    if (msg.role === 'tool_result') {
-      const toolUseId = msg.toolUseId
-      for (let i = boundary - 1; i >= 1; i--) {
-        const prev = messages[i]
-        if (prev.role === 'assistant_tool_call' && prev.toolUseId === toolUseId) {
-          boundary = i
-          break
-        }
-      }
-    }
-  }
-
-  return boundary
+  return alignBoundaryToApiRound(messages, boundary)
 }
 
 function messagesToText(messages: ChatMessage[]): string {
@@ -106,6 +96,9 @@ function messagesToText(messages: ChatMessage[]): string {
       case 'assistant_progress':
         parts.push(`[Assistant]: ${msg.content}`)
         break
+      case 'assistant_thinking':
+        parts.push('[Assistant Thinking]: preserved provider reasoning block')
+        break
       case 'assistant_tool_call':
         parts.push(`[Tool Call: ${msg.toolName}]: ${JSON.stringify(msg.input)}`)
         break
@@ -117,6 +110,9 @@ function messagesToText(messages: ChatMessage[]): string {
         break
       case 'context_summary':
         parts.push(`[Previous Summary]: ${msg.content}`)
+        break
+      case 'snip_boundary':
+        parts.push(`[Snipped Context Boundary]: ${msg.content}`)
         break
       default:
         break

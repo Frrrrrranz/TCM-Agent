@@ -180,6 +180,30 @@ describe('groupMessagesByApiRound', () => {
     assert.ok(toolGroup)
     assert.ok(toolGroup!.some(m => m.role === 'tool_result'), 'tool_result should be in same group as tool_use')
   })
+
+  it('groups thinking with parallel tool uses and their results', () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant_thinking', blocks: [{ type: 'thinking', thinking: 'plan', signature: 'sig' }] },
+      { role: 'assistant_tool_call', toolUseId: '1', toolName: 'read_file', input: { path: 'a.ts' } },
+      { role: 'assistant_tool_call', toolUseId: '2', toolName: 'read_file', input: { path: 'b.ts' } },
+      { role: 'tool_result', toolUseId: '1', toolName: 'read_file', content: 'a', isError: false },
+      { role: 'tool_result', toolUseId: '2', toolName: 'read_file', content: 'b', isError: false },
+      { role: 'assistant', content: 'Done' },
+    ]
+
+    const groups = groupMessagesByApiRound(messages)
+    const toolGroup = groups.find(g => g.some(m => m.role === 'assistant_thinking'))
+
+    assert.ok(toolGroup)
+    assert.deepEqual(toolGroup!.map(m => m.role), [
+      'assistant_thinking',
+      'assistant_tool_call',
+      'assistant_tool_call',
+      'tool_result',
+      'tool_result',
+    ])
+  })
 })
 
 describe('findRetentionBoundary', () => {

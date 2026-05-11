@@ -133,6 +133,16 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Compress conversation context to free up context window space.',
   },
   {
+    name: '/collapse',
+    usage: '/collapse',
+    description: 'Project old safe context spans into summaries without deleting the transcript.',
+  },
+  {
+    name: '/snip',
+    usage: '/snip',
+    description: 'Remove a safe middle segment of conversation context without calling the model.',
+  },
+  {
     name: '/init',
     usage: '/init',
     description: 'Create .mini-code/, .gitignore entries, and MINI.md in the current project (idempotent).',

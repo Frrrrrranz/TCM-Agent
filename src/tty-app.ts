@@ -24,7 +24,10 @@ import {
   listSessions,
   renameSession,
   appendCompactBoundary,
+  appendSnipBoundary,
+  appendContextCollapseSpan,
   loadTranscript,
+  loadContextCollapseState,
   forkSession,
   cleanupExpiredSessions,
   listAllProjects,
@@ -56,6 +59,13 @@ import type { ChatMessage, CompressionResult, ModelAdapter } from './types.js'
 import type { ContextStats } from './utils/token-estimator.js'
 import { computeContextStats } from './utils/token-estimator.js'
 import { manualCompact } from './compact/manual-compact.js'
+import { snipCompactConversation } from './compact/snipCompact.js'
+import {
+  applyContextCollapseIfNeeded,
+  createContextCollapseState,
+  type ContextCollapseResult,
+  type ContextCollapseState,
+} from './compact/context-collapse.js'
 import {
   createContentReplacementState,
   type ContentReplacementState,
@@ -69,6 +79,7 @@ type TtyAppArgs = {
   cwd: string
   permissions: PermissionManager
   contentReplacementState?: ContentReplacementState
+  contextCollapseState?: ContextCollapseState
   sessionId: string
   alreadySavedCount: number
   resumeTarget?: string | 'picker'
@@ -585,6 +596,32 @@ async function refreshSystemPrompt(args: TtyAppArgs): Promise<void> {
   }
 }
 
+function retainedMessagesAfterCompact(result: CompressionResult): ChatMessage[] {
+  return result.messages.filter(message => (
+    message.role !== 'system' && message !== result.summary
+  ))
+}
+
+async function persistContextCollapseResult(
+  args: TtyAppArgs,
+  result: ContextCollapseResult,
+): Promise<number> {
+  const spans = result.spans.length > 0
+    ? result.spans
+    : result.span
+      ? [result.span]
+      : []
+
+  for (const span of spans) {
+    await appendContextCollapseSpan(args.cwd, args.sessionId, span)
+  }
+
+  return spans.reduce(
+    (sum, span) => sum + Math.max(0, span.tokensBefore - span.tokensAfter),
+    0,
+  )
+}
+
 async function executeToolShortcut(
   args: TtyAppArgs,
   state: ScreenState,
@@ -674,6 +711,11 @@ async function resumeSession(
           kind: 'assistant',
           body: `[Context summary: ${msg.compressedCount} messages compressed]`,
         })
+      } else if (msg.role === 'snip_boundary') {
+        pushTranscriptEntry(state, {
+          kind: 'assistant',
+          body: `Snipped earlier context: removed ${msg.removedCount} messages, freed ~${Math.round(msg.tokensFreed)} tokens.`,
+        })
       }
     }
   }
@@ -682,6 +724,9 @@ async function resumeSession(
     body: `Session ${sessionId} resumed (${loaded.length} messages loaded).`,
   })
   args.alreadySavedCount = loaded.length
+  args.contextCollapseState =
+    await loadContextCollapseState(args.cwd, sessionId) ??
+    createContextCollapseState()
   state.transcriptScrollOffset = 0
 }
 
@@ -701,6 +746,108 @@ async function handleInput(
   const input = (submittedRawInput ?? state.input).trim()
   if (!input) return false
   if (input === '/exit') return true
+
+  // /collapse: persistent model-visible projection; original transcript remains intact
+  if (input === '/collapse') {
+    const model = args.runtime?.model ?? ''
+    if (!model) {
+      pushTranscriptEntry(state, {
+        kind: 'assistant',
+        body: 'No model configured. Cannot collapse context.',
+      })
+      return false
+    }
+
+    state.isBusy = true
+    state.status = 'Collapsing context...'
+    state.compressionStatus = 'collapsing...'
+    rerender()
+    try {
+      const result = await applyContextCollapseIfNeeded(
+        args.messages,
+        model,
+        args.model,
+        args.contextCollapseState ?? createContextCollapseState(),
+        {
+          utilizationThreshold: 0,
+          reason: 'manual',
+        },
+      )
+      args.contextCollapseState = result.state
+      state.contextStats = computeContextStats(result.messages, model)
+
+      if (result.collapsed) {
+        const savedTokens = await persistContextCollapseResult(args, result)
+        const spanCount = result.spans.length
+        state.compressionStatus = `collapse saved ~${Math.round(savedTokens)} tokens`
+        pushTranscriptEntry(state, {
+          kind: 'assistant',
+          body: `Context collapse projected ${spanCount} span${spanCount === 1 ? '' : 's'} into model-visible summaries. Original transcript is preserved.`,
+        })
+      } else {
+        state.compressionStatus = result.state.enabled ? 'nothing safe to collapse' : 'collapse disabled'
+        pushTranscriptEntry(state, {
+          kind: 'assistant',
+          body: result.state.enabled
+            ? 'Nothing safe to collapse.'
+            : 'Context collapse is disabled after repeated summary failures.',
+        })
+      }
+    } catch (error) {
+      state.compressionStatus = null
+      const message = error instanceof Error ? error.message : String(error)
+      pushTranscriptEntry(state, {
+        kind: 'assistant',
+        body: `Context collapse failed: ${message}`,
+      })
+    } finally {
+      state.isBusy = false
+      state.status = null
+      state.transcriptScrollOffset = 0
+      setTimeout(() => {
+        state.compressionStatus = null
+        rerender()
+      }, 5000)
+    }
+    return false
+  }
+
+  // /snip: deterministic middle-context removal without calling the model
+  if (input === '/snip') {
+    const model = args.runtime?.model ?? ''
+    const stats = computeContextStats(args.messages, model)
+    const result = await snipCompactConversation({
+      messages: args.messages,
+      contextStats: stats,
+      modelContextWindow: stats.effectiveInput,
+    })
+
+    if (!result.didSnip || result.boundaryMessage?.role !== 'snip_boundary') {
+      pushTranscriptEntry(state, {
+        kind: 'assistant',
+        body: 'Nothing safe to snip.',
+      })
+      return false
+    }
+
+    await appendSnipBoundary(args.cwd, args.sessionId, result.boundaryMessage)
+    args.messages.length = 0
+    args.messages.push(...result.messages)
+    args.alreadySavedCount = 0
+    args.contextCollapseState = createContextCollapseState()
+    state.contextStats = computeContextStats(args.messages, model)
+    state.compressionStatus = `snip saved ~${Math.round(result.tokensFreed)} tokens`
+    state.transcriptScrollOffset = 0
+    pushTranscriptEntry(state, {
+      kind: 'assistant',
+      body: `Snipped earlier context: removed ${result.removedMessageIds.length} messages, freed ~${Math.round(result.tokensFreed)} tokens.`,
+    })
+    setTimeout(() => {
+      state.compressionStatus = null
+      rerender()
+    }, 5000)
+    return false
+  }
 
   // /compact: manual context compression
   if (input === '/compact') {
@@ -727,10 +874,19 @@ async function handleInput(
       const result = await manualCompact(args.messages, args.model)
       if (result) {
         const summaryText = typeof result.summary.content === 'string' ? result.summary.content : ''
-        await appendCompactBoundary(args.cwd, args.sessionId, summaryText, 'manual', result.tokensBefore, result.tokensAfter)
+        await appendCompactBoundary(
+          args.cwd,
+          args.sessionId,
+          summaryText,
+          'manual',
+          result.tokensBefore,
+          result.tokensAfter,
+          retainedMessagesAfterCompact(result),
+        )
         args.messages.length = 0
         args.messages.push(...result.messages)
         args.alreadySavedCount = args.messages.length - 1
+        args.contextCollapseState = createContextCollapseState()
         const savedPct = Math.round((1 - result.tokensAfter / result.tokensBefore) * 100)
         const savedTokens = result.tokensBefore - result.tokensAfter
         state.compressionStatus = `ctx -${savedPct}% (saved ${savedTokens >= 1000 ? `${Math.round(savedTokens / 1000)}K` : savedTokens} tokens)`
@@ -844,6 +1000,7 @@ async function handleInput(
   if (input === '/new') {
     args.sessionId = crypto.randomUUID().slice(0, 8)
     args.alreadySavedCount = 0
+    args.contextCollapseState = createContextCollapseState()
     state.transcript = []
     args.messages.length = 0
     await refreshSystemPrompt(args)
@@ -866,6 +1023,7 @@ async function handleInput(
     }
     args.sessionId = newId
     args.alreadySavedCount = args.messages.length - 1
+    args.contextCollapseState = createContextCollapseState()
     state.transcriptScrollOffset = 0
     pushTranscriptEntry(state, {
       kind: 'assistant',
@@ -953,11 +1111,12 @@ async function handleInput(
       permissions: args.permissions,
       modelName: args.runtime?.model ?? '',
       contentReplacementState: args.contentReplacementState,
+      contextCollapseState: args.contextCollapseState,
       onContextStats(stats) {
         state.contextStats = stats
         rerender()
       },
-      onAutoCompact(result) {
+      async onAutoCompact(result) {
         const savedPct = Math.round((1 - result.tokensAfter / result.tokensBefore) * 100)
         const savedTokens = result.tokensBefore - result.tokensAfter
         state.compressionStatus = `ctx -${savedPct}% (saved ${savedTokens >= 1000 ? `${Math.round(savedTokens / 1000)}K` : savedTokens} tokens)`
@@ -966,8 +1125,43 @@ async function handleInput(
           body: `Context auto-compressed: ${result.removedCount} messages summarized.`,
         })
         const summaryText = typeof result.summary.content === 'string' ? result.summary.content : ''
-        void appendCompactBoundary(args.cwd, args.sessionId, summaryText, 'auto', result.tokensBefore, result.tokensAfter)
-        args.alreadySavedCount = 2 // boundary + summary events appended
+        await appendCompactBoundary(
+          args.cwd,
+          args.sessionId,
+          summaryText,
+          'auto',
+          result.tokensBefore,
+          result.tokensAfter,
+          retainedMessagesAfterCompact(result),
+        )
+        args.alreadySavedCount = result.messages.length - 1
+        state.transcriptScrollOffset = 0
+        setTimeout(() => {
+          state.compressionStatus = null
+          rerender()
+        }, 5000)
+      },
+      async onContextCollapse(result) {
+        if (result.collapsed) {
+          const savedTokens = await persistContextCollapseResult(args, result)
+          state.compressionStatus = `collapse saved ~${Math.round(savedTokens)} tokens`
+          rerender()
+          setTimeout(() => {
+            state.compressionStatus = null
+            rerender()
+          }, 5000)
+        }
+      },
+      async onSnipCompact(result) {
+        if (result.boundaryMessage?.role === 'snip_boundary') {
+          await appendSnipBoundary(args.cwd, args.sessionId, result.boundaryMessage)
+        }
+        args.alreadySavedCount = 0
+        state.compressionStatus = `snip saved ~${Math.round(result.tokensFreed)} tokens`
+        pushTranscriptEntry(state, {
+          kind: 'assistant',
+          body: `Snipped earlier context: removed ${result.removedMessageIds.length} messages, freed ~${Math.round(result.tokensFreed)} tokens.`,
+        })
         state.transcriptScrollOffset = 0
         setTimeout(() => {
           state.compressionStatus = null
@@ -1193,6 +1387,8 @@ export async function runTtyApp(args: TtyAppArgs): Promise<void> {
     ...args,
     contentReplacementState:
       args.contentReplacementState ?? createContentReplacementState(),
+    contextCollapseState:
+      args.contextCollapseState ?? createContextCollapseState(),
     permissions: new PermissionManager(
       args.cwd,
       createPermissionPromptHandler(state, () => renderScreen(permissionArgs, state)),
