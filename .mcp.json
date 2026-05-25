@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "tcm-data-engine": {
+      "command": "python",
+      "args": [
+        "-m",
+        "tcm_mcp_server.server"
+      ],
+      "cwd": "tcm-mcp-server",
+      "env": {
+        "PYTHONPATH": "src",
+        "PYTHONIOENCODING": "utf-8"
+      },
+      "enabled": true
+    }
+  }
+}

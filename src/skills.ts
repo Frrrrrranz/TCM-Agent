@@ -49,8 +49,12 @@ function extractDescription(markdown: string): string {
 function getSkillRoots(cwd: string): SkillSourceRoot[] {
   return [
     {
-      root: path.join(cwd, '.mini-code', 'skills'),
+      root: path.join(cwd, '.tcm-agent', 'skills'),
       source: 'project',
+    },
+    {
+      root: path.join(cwd, '.mini-code', 'skills'),
+      source: 'compat_project',
     },
     {
       root: path.join(os.homedir(), '.mini-code', 'skills'),
@@ -69,7 +73,7 @@ function getSkillRoots(cwd: string): SkillSourceRoot[] {
 
 function getManagedSkillRoot(scope: SkillScope, cwd: string): string {
   return scope === 'project'
-    ? path.join(cwd, '.mini-code', 'skills')
+    ? path.join(cwd, '.tcm-agent', 'skills')
     : path.join(os.homedir(), '.mini-code', 'skills')
 }
 

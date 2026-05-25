@@ -70,6 +70,19 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
+  test('finds TCM-AGENT.md in cwd', async () => {
+    const dir = makeTempDir()
+    try {
+      write(dir, 'TCM-AGENT.md', 'tcm project rules')
+      const files = await discoverTestFiles(dir)
+      assert.equal(files.length, 1)
+      assert.equal(files[0].content, 'tcm project rules')
+      assert.ok(files[0].path.endsWith('TCM-AGENT.md'))
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   test('finds MINI.local.md in cwd', async () => {
     const dir = makeTempDir()
     try {
@@ -245,6 +258,22 @@ describe('discoverInstructionFiles', () => {
         'a-first.md',
         'testing.md',
         'typescript.md',
+      ])
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('discovers .tcm-agent/rules/*.md files sorted by filename', async () => {
+    const dir = makeTempDir()
+    try {
+      write(dir, '.tcm-agent/rules/safety.md', 'safety rules')
+      write(dir, '.tcm-agent/rules/herbology.md', 'herbology rules')
+
+      const files = await discoverTestFiles(dir)
+      assert.deepEqual(files.map(f => path.basename(f.path)), [
+        'herbology.md',
+        'safety.md',
       ])
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })

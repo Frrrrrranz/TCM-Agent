@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "name": "中药查询 MVP 评测集",
+    "version": "0.1",
+    "source": "seed_herbs.py",
+    "total_cases": 4
+  },
+  "cases": [
+    {
+      "id": "herb-001",
+      "input": {"name": "桂枝"},
+      "expected": {
+        "nature": "温",
+        "taste": "辛、甘",
+        "meridian": "心、肺、膀胱经",
+        "effect_contains": ["发汗解肌", "温通经脉", "助阳化气"],
+        "indication_contains": ["风寒感冒", "心悸"]
+      }
+    },
+    {
+      "id": "herb-002",
+      "input": {"name": "半夏"},
+      "expected": {
+        "nature": "温",
+        "toxicity": "有毒",
+        "effect_contains": ["燥湿化痰", "降逆止呕"]
+      }
+    },
+    {
+      "id": "herb-003",
+      "input": {"name": "黄连"},
+      "expected": {
+        "nature": "寒",
+        "taste": "苦",
+        "effect_contains": ["清热燥湿", "泻火解毒"]
+      }
+    },
+    {
+      "id": "herb-004",
+      "input": {"name": "附子"},
+      "expected": {
+        "nature": "大热",
+        "toxicity": "有毒",
+        "caution_contains": ["孕妇忌用", "反半夏"]
+      }
+    }
+  ]
+}

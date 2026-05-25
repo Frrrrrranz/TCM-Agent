@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "name": "配伍禁忌 MVP 评测集",
+    "version": "0.1",
+    "source": "十八反十九畏规则表",
+    "total_cases": 30
+  },
+  "cases": [
+    {"id": "anti-001", "type": "十八反", "herbs": ["乌头", "半夏"]},
+    {"id": "anti-002", "type": "十八反", "herbs": ["乌头", "瓜蒌"]},
+    {"id": "anti-003", "type": "十八反", "herbs": ["乌头", "贝母"]},
+    {"id": "anti-004", "type": "十八反", "herbs": ["乌头", "白蔹"]},
+    {"id": "anti-005", "type": "十八反", "herbs": ["乌头", "白及"]},
+    {"id": "anti-006", "type": "十八反", "herbs": ["甘草", "海藻"]},
+    {"id": "anti-007", "type": "十八反", "herbs": ["甘草", "大戟"]},
+    {"id": "anti-008", "type": "十八反", "herbs": ["甘草", "甘遂"]},
+    {"id": "anti-009", "type": "十八反", "herbs": ["甘草", "芫花"]},
+    {"id": "anti-010", "type": "十八反", "herbs": ["藜芦", "人参"]},
+    {"id": "anti-011", "type": "十八反", "herbs": ["藜芦", "沙参"]},
+    {"id": "anti-012", "type": "十八反", "herbs": ["藜芦", "丹参"]},
+    {"id": "anti-013", "type": "十八反", "herbs": ["藜芦", "玄参"]},
+    {"id": "anti-014", "type": "十八反", "herbs": ["藜芦", "苦参"]},
+    {"id": "anti-015", "type": "十八反", "herbs": ["藜芦", "细辛"]},
+    {"id": "anti-016", "type": "十八反", "herbs": ["藜芦", "芍药"]},
+    {"id": "anti-alias-001", "type": "十八反", "herbs": ["附子", "半夏"]},
+    {"id": "anti-alias-002", "type": "十八反", "herbs": ["川乌", "川贝母"]},
+    {"id": "anti-alias-003", "type": "十八反", "herbs": ["藜芦", "白芍"]},
+    {"id": "fear-001", "type": "十九畏", "herbs": ["硫黄", "朴硝"]},
+    {"id": "fear-002", "type": "十九畏", "herbs": ["水银", "砒霜"]},
+    {"id": "fear-003", "type": "十九畏", "herbs": ["狼毒", "密陀僧"]},
+    {"id": "fear-004", "type": "十九畏", "herbs": ["巴豆", "牵牛"]},
+    {"id": "fear-005", "type": "十九畏", "herbs": ["丁香", "郁金"]},
+    {"id": "fear-006", "type": "十九畏", "herbs": ["牙硝", "三棱"]},
+    {"id": "fear-007", "type": "十九畏", "herbs": ["川乌", "犀角"]},
+    {"id": "fear-008", "type": "十九畏", "herbs": ["人参", "五灵脂"]},
+    {"id": "fear-009", "type": "十九畏", "herbs": ["官桂", "赤石脂"]},
+    {"id": "fear-alias-001", "type": "十九畏", "herbs": ["肉桂", "赤石脂"]},
+    {"id": "negative-001", "type": null, "herbs": ["桂枝", "白芍"]}
+  ]
+}

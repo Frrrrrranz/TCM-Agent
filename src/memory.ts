@@ -19,6 +19,9 @@ const MAX_PER_FILE_CHARS = 8_000
 const MAX_TOTAL_CHARS = 20_000
 
 const CANDIDATES_PER_DIR = [
+  'TCM-AGENT.md',
+  'TCM-AGENT.local.md',
+  path.join('.tcm-agent', 'TCM-AGENT.md'),
   'MINI.md',
   'MINI.local.md',
   path.join('.mini-code', 'MINI.md'),
@@ -149,6 +152,7 @@ export async function discoverInstructionFiles(
   // User global first
   const home = homeDir ?? MINI_CODE_DIR
   const globalCandidates = [
+    path.join(home, 'TCM-AGENT.md'),
     path.join(home, 'MINI.md'),
     path.join(home, 'CLAUDE.md'),
   ]
@@ -178,6 +182,13 @@ export async function discoverInstructionFiles(
     }
 
     for (const rulePath of await discoverRuleFiles(path.join(dir, '.mini-code', 'rules'))) {
+      const content = await tryRead(rulePath)
+      if (content) {
+        files.push({ path: rulePath, content: await resolveIncludes(content, rulePath, new Set([rulePath])) })
+      }
+    }
+
+    for (const rulePath of await discoverRuleFiles(path.join(dir, '.tcm-agent', 'rules'))) {
       const content = await tryRead(rulePath)
       if (content) {
         files.push({ path: rulePath, content: await resolveIncludes(content, rulePath, new Set([rulePath])) })
