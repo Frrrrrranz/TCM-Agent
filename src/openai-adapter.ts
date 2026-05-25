@@ -161,9 +161,8 @@ function toOpenAIMessages(messages: ChatMessage[]): OpenAIMessage[] {
   }
 
   for (const message of messages) {
-    // FIXME: 多工具并行调用时，内部格式将它们拆成多条 assistant_tool_call。
-    // OpenAI 要求同一轮的所有 tool_calls 合并在一条 assistant 消息里，
-    // 因此这里做批量收集，遇到非 tool_call 时才 flush。
+    // NOTE: 连续的 assistant_tool_call 需要合并成一条含 tool_calls 数组的 assistant 消息，
+    // 以满足 OpenAI 协议要求（同一轮所有工具调用必须在同一条 assistant 消息里）。
     if (message.role === 'assistant_tool_call') {
       pendingToolCalls.push({
         id: message.toolUseId,
@@ -176,10 +175,10 @@ function toOpenAIMessages(messages: ChatMessage[]): OpenAIMessage[] {
       continue
     }
 
-    // tool_result 不触发 flush，因为它必须紧跟在 assistant tool_calls 之后
-    if (message.role !== 'tool_result') {
-      flushPendingToolCalls()
-    }
+    // NOTE: 所有消息（包括 tool_result）写入前都必须先 flush。
+    // OpenAI 要求 tool 消息必须紧跟在含 tool_calls 的 assistant 消息之后，
+    // 如果 tool_result 来到时 pendingToolCalls 还没 flush，会导致顺序错误（400 报错）。
+    flushPendingToolCalls()
 
     switch (message.role) {
       case 'system':
