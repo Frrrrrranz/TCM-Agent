@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import readline from 'node:readline'
 import process from 'node:process'
 import { AnthropicModelAdapter } from './anthropic-adapter.js'
+import { OpenAIModelAdapter } from './openai-adapter.js'
 import {
   completeSlashCommand,
   findMatchingSlashCommands,
@@ -78,10 +79,16 @@ async function main(): Promise<void> {
   })
   const permissions = new PermissionManager(cwd)
   await permissions.whenReady()
+  // NOTE: 根据 baseUrl 自动选择适配器。
+  // Anthropic 官方域名 → AnthropicModelAdapter（/v1/messages 协议）
+  // 其他（DeepSeek、本地代理、OpenAI 等）→ OpenAIModelAdapter（/v1/chat/completions 协议）
+  const isAnthropicNative = runtime?.baseUrl?.includes('anthropic.com') ?? false
   const model =
     process.env.MINI_CODE_MODEL_MODE === 'mock'
       ? new MockModelAdapter()
-      : new AnthropicModelAdapter(tools, loadRuntimeConfig)
+      : isAnthropicNative
+        ? new AnthropicModelAdapter(tools, loadRuntimeConfig)
+        : new OpenAIModelAdapter(tools, loadRuntimeConfig)
   let messages: ChatMessage[] = [
     {
       role: 'system',
