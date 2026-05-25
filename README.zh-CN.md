@@ -1,214 +1,361 @@
-# MiniCode
+# 🏥 TCM-Agent — 中医药智能辅助决策系统
 
 <p align="center">
-  <img src="./docs/logo.svg" alt="MiniCode Logo" width="180" />
+  <img src="./docs/logo.svg" alt="TCM-Agent Logo" width="180" />
 </p>
 
-<h2 align="center">MiniCode</h2>
+<p align="center">
+  <strong>基于 MiniCode 框架的中医药领域智能体</strong>
+  <br />
+  融合中医经典理论、结构化知识库与 RAG 语义检索的辅助决策引擎
+</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Editor-Minicode-D97757?style=for-the-badge" alt="Editor: Minicode" />
-  <img src="https://img.shields.io/badge/%23minicode-Project-B85C3F?style=for-the-badge" alt="#minicode" />
-  <img src="https://img.shields.io/badge/%23lightweight-Focus-F0EBE1?style=for-the-badge&labelColor=8B8B8B" alt="#lightweight" />
-  <a href="https://deepwiki.com/LiuMengxuan04/MiniCode">
-    <img src="https://img.shields.io/badge/Ask-DeepWiki-0F7BBF?style=for-the-badge&labelColor=2B2B2B" alt="Ask DeepWiki" />
-  </a>
+  <img src="https://img.shields.io/badge/状态-MVP%20工程化-4CAF50?style=for-the-badge" alt="状态: MVP 工程化" />
+  <img src="https://img.shields.io/badge/框架-MiniCode-D97757?style=for-the-badge" alt="框架: MiniCode" />
+  <img src="https://img.shields.io/badge/数据引擎-Python%20MCP-3776AB?style=for-the-badge" alt="数据引擎: Python MCP" />
+  <img src="https://img.shields.io/badge/测试-48%20passed-4CAF50?style=for-the-badge" alt="测试: 48 passed" />
 </p>
 
 ---
 
-<p align="center">
-  一个轻量且高效的编码工具。为速度而生，为简洁而建。
-</p>
+## 📋 目录
 
-[English](./README.md) | [详细使用指南](./USAGE_ZH.md) | [DeepWiki](https://deepwiki.com/LiuMengxuan04/MiniCode) | [架构说明](./ARCHITECTURE_ZH.md) | [贡献规范](./CONTRIBUTING_ZH.md) | [路线图](./ROADMAP_ZH.md) | [License](./LICENSE)
+- [项目简介](#项目简介)
+- [核心架构](#核心架构)
+- [快速开始](#快速开始)
+- [功能概览](#功能概览)
+- [项目结构](#项目结构)
+- [验证命令](#验证命令)
+- [当前状态](#当前状态)
+- [路线图](#路线图)
+- [相关文档](#相关文档)
 
-MiniCode 是一个面向本地开发工作流的轻量级终端编码助手。
-
-它用更小的实现体量，提供类 Claude Code 的工作流体验和架构思路，因此很适合学习、实验，以及继续做自己的定制化开发。
+---
 
 ## 项目简介
 
-MiniCode 围绕一个 terminal-first agent loop 构建：
+**TCM-Agent** 是一个面向中医药领域的智能辅助决策系统。它基于 [MiniCode](https://github.com/LiuMengxuan04/MiniCode) 框架，通过注入中医角色定义、知识规则和工作流技能，结合 Python MCP Server 提供的中医药数据引擎，实现中药查询、配伍禁忌检查、辨证分析等核心能力。
 
-- 接收用户请求
-- 检查当前工作区
-- 在需要时调用工具
-- 修改文件前先 review
-- 在同一个终端会话里返回最终结果
+### 设计原则
 
-整个项目有意保持紧凑，让主控制流、工具模型和 TUI 行为更容易理解和扩展。
+| 原则 | 说明 |
+|------|------|
+| **零代码侵入** | 中医药知识层使用纯 Markdown，不修改底层框架核心代码 |
+| **分层解耦** | Agent 框架、知识层、数据引擎通过 MCP 协议通信 |
+| **混合检索** | SQLite 精确查询 + ChromaDB 语义检索互补 |
+| **可追溯入库** | 每条医学数据均可回溯到原始文本和复核状态 |
+| **安全优先** | 所有输出包含免责声明和安全提示，十八反十九畏零漏报 |
+| **评测驱动** | Harness 工程贯穿全流程，量化指标指导迭代优化 |
 
-## 核心作者
+---
 
-<table>
-  <tr>
-    <td align="center" valign="top" width="20%">
-      <a href="https://github.com/LiuMengxuan04">
-        <img src="https://github.com/LiuMengxuan04.png?size=160" width="96" height="96" alt="LiuMengxuan04" /><br />
-        <strong>Liu Mengxuan</strong>
-      </a>
-      <br />
-      <sub><strong>发起者</strong></sub>
-      <br />
-      <sub>主导 TypeScript 主仓库、核心工作流、MCP/Skills、TUI 与文档。</sub>
-    </td>
-    <td align="center" valign="top" width="20%">
-      <a href="https://github.com/GateJustice">
-        <img src="https://github.com/GateJustice.png?size=160" width="96" height="96" alt="GateJustice" /><br />
-        <strong>GateJustice</strong>
-      </a>
-      <br />
-      <sub><strong>共同发起者</strong></sub>
-      <br />
-      <sub>贡献长会话上下文系统，包括 usage 记账、自动压缩和 context collapse。</sub>
-    </td>
-    <td align="center" valign="top" width="20%">
-      <a href="https://github.com/harkerhand">
-        <img src="https://github.com/harkerhand.png?size=160" width="96" height="96" alt="harkerhand" /><br />
-        <strong>harkerhand</strong>
-      </a>
-      <br />
-      <sub><strong>MiniCode-rs</strong></sub>
-      <br />
-      <sub>Rust 版本主要作者。</sub>
-    </td>
-    <td align="center" valign="top" width="20%">
-      <a href="https://github.com/QUSETIONS">
-        <img src="https://github.com/QUSETIONS.png?size=160" width="96" height="96" alt="QUSETIONS" /><br />
-        <strong>QUSETIONS</strong>
-      </a>
-      <br />
-      <sub><strong>MiniCode-Python</strong></sub>
-      <br />
-      <sub>Python 版本主要作者。</sub>
-    </td>
-    <td align="center" valign="top" width="20%">
-      <a href="https://github.com/GoDiao">
-        <img src="https://github.com/GoDiao.png?size=160" width="96" height="96" alt="GoDiao" /><br />
-        <strong>GoDiao</strong>
-      </a>
-      <br />
-      <sub><strong>核心贡献者</strong></sub>
-      <br />
-      <sub>贡献分层 memory、/init、会话恢复和 TUI 交互改进。</sub>
-    </td>
-  </tr>
-</table>
+## 核心架构
 
-简介根据主仓库与多语言分支提交记录归纳。更多贡献者请以仓库提交历史为准。
-
-## 多语言版本
-
-- TypeScript（本仓库）：[MiniCode](https://github.com/LiuMengxuan04/MiniCode)
-- Rust 版本：[MiniCode-rs](https://github.com/harkerhand/MiniCode-rs/tree/master)
-- Python 版本：[MiniCode-Python](https://github.com/QUSETIONS/MiniCode-Python)
-- Java 版本：[MiniCode4j](https://github.com/hobbescalvin414-tech/minicode4j/tree/feat/default-ts-ui)
-
-## 产品展示页
-
-- 在浏览器中打开 [docs/index.html](./docs/index.html)，即可查看可视化产品介绍页面。
-- GitHub Pages 推荐访问地址：`https://liumengxuan04.github.io/MiniCode/`
-
-## 为什么选择 MiniCode
-
-MiniCode 适合你，如果你想要：
-
-- 一个轻量级 coding assistant，而不是庞大的平台
-- 一个带 tool calling、transcript 和命令工作流的终端 UI
-- 一个很适合阅读和二次开发的小代码库
-- 一个可用于学习类 Claude Code agent 架构的参考实现
-
-## 核心能力
-
-- 单轮支持多步工具执行，形成 `model -> tool -> model` 闭环。
-- 提供全屏终端交互界面，支持输入历史、transcript 滚动、slash 命令菜单和审批交互。
-- 会话按项目隔离持久化，支持恢复、重命名、分叉和压缩。
-- 上下文统计优先使用 provider usage，并支持 tail estimate、自动压缩、上下文折叠和裁剪压缩。
-- 内置文件、搜索、编辑、命令执行、Web fetch/search、澄清提问等工具。
-- 支持通过 `SKILL.md` 发现本地 skills，也支持通过 stdio 或远程 HTTP 接入 MCP tools/resources/prompts。
-- 文件修改前先 review diff，并对路径和命令执行做权限检查。
-- 超大工具结果会落盘保存，并在上下文里替换成短预览和文件路径，减少长输出对对话空间的挤占。
-
-完整命令、配置示例、会话机制和 Skills/MCP 用法已经移到 [详细使用指南](./USAGE_ZH.md)。
-
-## 安装
-
-```bash
-cd mini-code
-npm install
-npm run install-local
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TCM-Agent（项目根目录）                        │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  MiniCode (TypeScript) — 底层 Agent 框架【不动核心代码】    │  │
+│  │  src/agent-loop.ts    ← 模型↔工具循环                      │  │
+│  │  src/tool.ts          ← 工具注册中心                       │  │
+│  │  src/prompt.ts        ← System Prompt 构建（注入中医角色）  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                          │                                      │
+│  ┌───────────────────────┼───────────────────────────────────┐  │
+│  │         中医药知识层（纯 Markdown，零代码侵入）              │  │
+│  │                                                           │  │
+│  │  TCM-AGENT.md              ← 中医角色 + 安全边界 + 免责     │  │
+│  │  .tcm-agent/rules/         ← 辨证/方剂/中药/安全 规则       │  │
+│  │  .tcm-agent/skills/        ← 辨证/查药/方剂匹配 工作流      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                          │                                      │
+│                   MCP 协议 (stdio)                               │
+│                          │                                      │
+│  ┌───────────────────────┴───────────────────────────────────┐  │
+│  │        tcm-mcp-server (Python) — 中医药数据引擎             │  │
+│  │                                                           │  │
+│  │  ┌─────────────────┐  ┌──────────────────────────────┐   │  │
+│  │  │ MCP 工具层       │  │ RAG 检索引擎                 │   │  │
+│  │  │                 │  │                              │   │  │
+│  │  │ tcm_search_herb │  │ LangChain + ChromaDB          │   │  │
+│  │  │ tcm_search_pres │  │                              │   │  │
+│  │  │ tcm_diagnosis   │──│ {症状} → embedding → 检索    │   │  │
+│  │  │ tcm_interact_chk│  │     → 相关医案/方剂/中药      │   │  │
+│  │  │ tcm_acupoint    │  │     → LLM 重排序 → 返回      │   │  │
+│  │  └─────────────────┘  └──────────────────────────────┘   │  │
+│  │                                                           │  │
+│  │  数据层：SQLite（结构化）+ ChromaDB（向量库）+ Markdown    │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-安装器会询问模型名称、`ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`。默认配置保存在：
+### 三层架构
 
-- `~/.mini-code/settings.json`
-- `~/.mini-code/mcp.json`
+#### 1. 主 Agent 框架（MiniCode）
 
-可通过 `MINI_CODE_HOME` 自定义配置目录，通过 `MINI_CODE_BIN_DIR` 自定义启动器目录。更多安装细节见 [详细使用指南](./USAGE_ZH.md#安装细节)。
+基于 MiniCode 框架，通过 System Prompt 注入中医角色定义，**不修改框架核心代码**。
+
+| 模块 | 职责 |
+|------|------|
+| `src/agent-loop.ts` | 模型↔工具多轮调用循环 |
+| `src/tool.ts` | 工具注册、校验、执行 |
+| `src/prompt.ts` | System Prompt 构建（加载 TCM-AGENT.md + rules + skills） |
+| `src/memory.ts` | 分层指令文件加载 |
+| `src/mcp.ts` | MCP Server 通信管理 |
+
+#### 2. 中医药知识层（纯 Markdown）
+
+- **角色定义**：[TCM-AGENT.md](./TCM-AGENT.md) — 中医角色定位、核心能力、行为准则
+- **知识规则**：`.tcm-agent/rules/` — 诊断学、中药学、方剂学、安全边界
+- **工作流技能**：`.tcm-agent/skills/` — 辨证、查药、方剂匹配、医案分析
+
+#### 3. 中医药数据引擎（tcm-mcp-server）
+
+Python 实现的 MCP Server，提供结构化数据查询与 RAG 语义检索能力。
+
+| 层次 | 技术栈 |
+|------|--------|
+| MCP 工具层 | Python MCP SDK |
+| RAG 引擎 | LangChain + ChromaDB + sentence-transformers |
+| 结构化数据 | SQLite |
+| 向量模型 | BAAI/bge-large-zh-v1.5（Embedding）+ bge-reranker-large（重排序） |
+
+---
 
 ## 快速开始
 
-运行安装后的命令：
+### 前置要求
+
+- Node.js ≥ 18
+- Python ≥ 3.10
+- npm
+
+### 安装
 
 ```bash
+# 1. 安装主 Agent
+cd TCM-Agent
+npm install
+npm run install-local
+
+# 2. 安装 MCP Server
+cd tcm-mcp-server
+pip install -e .
+```
+
+### 配置 MCP Server
+
+项目已预置 `.mcp.json` 配置文件，指向 `tcm-mcp-server`：
+
+```json
+{
+  "mcpServers": {
+    "tcm-data-engine": {
+      "command": "python",
+      "args": ["-m", "tcm_mcp_server.server"],
+      "cwd": "tcm-mcp-server",
+      "env": {
+        "PYTHONPATH": "src",
+        "PYTHONIOENCODING": "utf-8"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+### 启动
+
+```bash
+# 开发模式
+cd TCM-Agent
+npm run dev
+
+# 或使用安装后的命令
 minicode
 ```
 
-本地开发模式：
+---
 
-```bash
-npm run dev
+## 功能概览
+
+### MCP 工具清单
+
+| 工具名 | 输入参数 | 检索方式 | 功能说明 |
+|--------|----------|----------|----------|
+| `tcm_search_herb` | `name`, `nature?`, `taste?`, `meridian?`, `keywords?` | SQLite + 向量 | 中药详情查询（性味归经功效主治禁忌） |
+| `tcm_search_prescription` | `name?`, `syndrome?`, `symptoms?`, `herbs?` | 向量 + SQLite | 方剂详情查询（组成功用主治方解加减） |
+| `tcm_diagnosis_syndrome` | `symptoms: string[]`, `tongue?`, `pulse?` | 向量检索 | 辨证分析（可能证型列表 + 置信度） |
+| `tcm_drug_interaction_check` | `herbs: string[]` | 规则引擎 + SQLite | 配伍禁忌检查（十八反、十九畏） |
+| `tcm_acupoint_search` | `name?`, `meridian?`, `keywords?` | SQLite | 穴位详情查询（定位归经主治操作） |
+| `tcm_classic_case_search` | `keywords: string`, `syndrome?` | 向量检索 | 经典医案检索 |
+
+### 安全规则覆盖
+
+- **十八反**：36 组药物组合全覆盖
+- **十九畏**：19 组药物组合全覆盖
+- **别名映射**：支持常见别名（如附子/川乌/草乌→乌头，川贝母/浙贝母→贝母等）
+- **妊娠禁忌**：妊娠禁忌药物警示
+- **毒性药物**：毒性药物用量范围警示
+
+### 数据接入质控
+
+数据入库采用 **Schema 先行 + 规则解析为主 + LLM 辅助补洞 + 强校验 + 人工抽检** 策略：
+
+```
+中药 Markdown → normalize_text → parse_herb_markdown
+  → HerbIngestionRecord → validate_herb_record
+  → import SQLite 或写入 review queue
 ```
 
-离线演示模式：
+- 干净记录直接入库
+- 毒性药物、禁忌内容进入复核队列
+- 异常剂量单位进入复核
+- 非法性味、归经字段直接拒绝
 
-```bash
-MINI_CODE_MODEL_MODE=mock npm run dev
+---
+
+## 项目结构
+
+```
+TCM-Agent/                              ← 主仓库（基于 MiniCode 二开）
+├── TCM-AGENT.md                        ← 中医角色定义
+├── TCM-ARCHITECTURE.md                 ← 完整架构方案
+├── .tcm-agent/
+│   ├── rules/                          ← 中医知识规则
+│   │   ├── tcm-diagnostics.md          ← 诊断学规则
+│   │   ├── tcm-herbology.md            ← 中药学规则
+│   │   ├── tcm-prescriptions.md        ← 方剂学规则
+│   │   └── tcm-safety.md               ← 安全边界规则
+│   └── skills/                         ← 工作流技能
+│       ├── tcm-diagnosis/SKILL.md      ← 辨证工作流
+│       ├── tcm-herb-query/SKILL.md     ← 中药查询工作流
+│       ├── tcm-prescription-match/SKILL.md ← 方剂匹配工作流
+│       └── tcm-case-analysis/SKILL.md  ← 医案分析工作流
+├── .mcp.json                           ← MCP Server 配置
+├── src/                                ← MiniCode 框架源码
+├── tcm-mcp-server/                     ← Python 中医药数据引擎
+│   ├── pyproject.toml
+│   ├── src/
+│   │   ├── server.py                   ← MCP Server 入口
+│   │   ├── tools/                      ← MCP 工具实现
+│   │   ├── rag/                        ← RAG 检索引擎
+│   │   ├── models/                     ← 数据模型
+│   │   └── data/                       ← 数据导入、校验、复核
+│   ├── tests/                          ← Harness 评测工程
+│   │   ├── datasets/                   ← 评测数据集
+│   │   ├── unit/                       ← 单元测试
+│   │   ├── rag/                        ← RAG 质量评测
+│   │   ├── ingestion/                  ← 数据接入质控测试
+│   │   ├── safety/                     ← 安全专项测试
+│   │   ├── e2e/                        ← 端到端测试
+│   │   └── benchmark/                  ← 性能基准测试
+│   └── data/
+│       ├── raw/                        ← 原始 Markdown
+│       ├── normalized/                 ← 规范化 Markdown
+│       ├── review/                     ← 待人工复核数据
+│       ├── tcm.db                      ← SQLite 数据库
+│       └── chroma/                     ← ChromaDB 持久化
+└── docs/                               ← 文档与展示页面
 ```
 
-## 常用入口
+---
 
-- `/help`：查看交互帮助。
-- `/tools`：查看当前可用工具。
-- `/skills`：查看当前可发现的 skills。
-- `/mcp`：查看当前 MCP 连接状态。
-- `/status`：查看会话和上下文状态。
-- `/init`：为当前项目生成 `.mini-code/` 与 `MINI.md` 初始化文件。
-- `/memory`：查看本轮实际加载的分层 memory 文件。
-- `/model` / `/model <name>`：查看或切换模型。
-- `/resume`：打开会话选择器。
-- `/compact`：手动压缩上下文。
+## 验证命令
 
-管理命令包括 `minicode mcp ...` 和 `minicode skills ...`，详见 [命令说明](./USAGE_ZH.md#命令)。
+### 主 Agent 测试
 
-## 文档导航
-
-- [详细使用指南](./USAGE_ZH.md)
-- [Architecture Overview](./ARCHITECTURE.md)
-- [中文架构说明](./ARCHITECTURE_ZH.md)
-- [中文贡献规范](./CONTRIBUTING_ZH.md)
-- [Contribution Guidelines](./CONTRIBUTING.md)
-- [路线图](./ROADMAP_ZH.md)
-- [Roadmap](./ROADMAP.md)
-- [通过 MiniCode 学习 Claude Code 设计](./CLAUDE_CODE_PATTERNS_ZH.md)
-
-## Star 趋势
-
-<p align="center">
-  <a href="https://star-history.com/#LiuMengxuan04/MiniCode&Date">
-    <img
-      alt="Star History Chart"
-      src="https://api.star-history.com/image?repos=LiuMengxuan04/MiniCode&style=landscape1"
-    />
-  </a>
-</p>
-
-## 开发
-
-```bash
-npm run check
-npm test
+```powershell
+cd TCM-Agent
+npm.cmd test          # 运行测试（204 passed）
+npm.cmd run check     # TypeScript 类型检查
 ```
 
-MiniCode 有意保持小而实用。目标是让整体架构足够清晰、易改造、易扩展。
+### MCP Server 测试
+
+```powershell
+cd tcm-mcp-server
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; pytest tests -q
+# 结果：48 passed
+```
+
+> **注意**：Anaconda 全局 pytest 插件与 NumPy 2 存在兼容冲突，需设置 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` 避免外部插件污染测试环境。
+
+---
+
+## 当前状态
+
+> **MVP 原型已可用，安全规则、MCP 集成和数据入库质控已开始工程化落地。**
+
+### 已完成
+
+| 模块 | 状态 | 说明 |
+|------|------|------|
+| 主 Agent 知识层 | ✅ | 中医角色、规则、技能加载，204 测试通过 |
+| MCP 数据引擎 | ✅ | 6 个工具，SQLite + ChromaDB，种子数据（中药 29、方剂 14、证型 18、穴位 19） |
+| 安全规则 | ✅ | 十八反、十九畏全覆盖，别名映射 |
+| Harness 测试 | ✅ | 48 测试通过，含单元、安全、数据接入、集成测试 |
+| 数据可追溯 | ✅ | source_file/source_hash/review_status 等追溯字段 |
+| 数据接入闭环 | ✅ | Markdown → 规范化 → 解析 → 校验 → 复核 → 入库 |
+
+### 种子数据规模
+
+| 数据类型 | 数量 |
+|----------|------|
+| 中药 | 29 条 |
+| 方剂 | 14 条 |
+| 证型 | 18 条 |
+| 穴位 | 19 条 |
+
+### 已知缺口
+
+- [ ] 仓库结构需整理（`tcm-mcp-server` 尚未纳入主仓库版本管理）
+- [ ] 批量数据导入（`data/raw/herbology/*.md`）
+- [ ] 方剂 Markdown 解析
+- [ ] RAG 质量评测（Recall@K、MRR、NDCG）
+- [ ] CI 工作流（GitHub Actions）
+
+---
+
+## 路线图
+
+### P0：整理项目结构
+- 明确 `TCM-Agent` 与 `tcm-mcp-server` 的版本关系
+- 决定 MCP Server 纳入主仓库还是独立仓库
+
+### P1：CI 最小集
+- 每次提交自动运行主 Agent 测试 + MCP Harness
+
+### P1：批量数据导入
+- 支持从 `data/raw/herbology/*.md` 批量读取
+- 生成导入成功数、review 数、拒绝数、汇总报告
+
+### P2：方剂接入链路
+- 建立 `PrescriptionIngestionRecord`
+- 支持方剂 Markdown 解析与校验
+
+### P2：RAG 质量 Harness
+- 建立 `tests/rag/`
+- Recall@5、MRR、精确字段匹配率
+
+---
+
+## 相关文档
+
+| 文档 | 说明 |
+|------|------|
+| [TCM-AGENT.md](./TCM-AGENT.md) | 中医角色定义与行为准则 |
+| [TCM-ARCHITECTURE.md](./TCM-ARCHITECTURE.md) | 完整架构方案（含 RAG 设计、Harness 评测、实施路线图） |
+| [ARCHITECTURE_ZH.md](./ARCHITECTURE_ZH.md) | MiniCode 框架架构说明 |
+| [USAGE_ZH.md](./USAGE_ZH.md) | MiniCode 详细使用指南 |
+| [CONTRIBUTING_ZH.md](./CONTRIBUTING_ZH.md) | 贡献规范 |
+
+---
+
+## 许可证
+
+本项目基于 [MiniCode](https://github.com/LiuMengxuan04/MiniCode) 二次开发，遵循原项目许可证。详见 [LICENSE](./LICENSE)。
+
+> **免责声明**：TCM-Agent 仅供中医药学习与参考研究使用，所有输出结果仅供参考，不构成医疗建议。请遵医嘱，切勿自行用药。
