@@ -57,6 +57,22 @@ def create_server() -> object:
     embedding_manager = EmbeddingManager()
     vector_store = VectorStore(CHROMA_DIR)
     retriever = HybridRetriever(db, vector_store)
+
+    # ── 预热向量库（避免首次工具调用超时）────────────────────
+    # NOTE: ChromaDB 在首次 query 时才会加载内置 Embedding 模型，
+    # 这个过程可能耗时 10-30 秒，超过 MCP tools/call 默认超时限制。
+    # 在服务启动阶段主动触发一次轻量 warmup 查询，确保模型在接受请求前已就绪。
+    _warmup_collections = ["herbs", "prescriptions", "syndromes", "classic_cases"]
+    logger.info("正在预热向量检索引擎，首次启动可能需要 10-30 秒...")
+    for _col in _warmup_collections:
+        try:
+            vector_store.similarity_search(_col, "预热", k=1)
+            logger.info("集合 '%s' 预热完成", _col)
+        except Exception as _exc:
+            # NOTE: 集合不存在（尚未建库）时忽略，不影响启动
+            logger.warning("集合 '%s' 预热跳过: %s", _col, _exc)
+    logger.info("向量检索引擎预热完成，已就绪")
+
     pipeline = RAGPipeline(retriever)
 
     # ── 初始化工具 ────────────────────────────────────────────
