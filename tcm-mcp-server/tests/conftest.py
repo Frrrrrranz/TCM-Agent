@@ -6,6 +6,14 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    # NOTE: pytest 的 --basetemp 只会创建最后一层目录。
+    # 若 tmp/pytest 的父目录 tmp/ 不存在，pytest 会直接报 FileNotFoundError (WinError 3)。
+    # 在这里提前创建完整路径，确保跨平台（Windows/Linux）开箱即用。
+    basetemp = PROJECT_ROOT / "tmp" / "pytest"
+    basetemp.mkdir(parents=True, exist_ok=True)
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
