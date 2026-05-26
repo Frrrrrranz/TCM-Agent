@@ -4,6 +4,9 @@ dist/
 ~/
 .DS_Store
 *.log
+__pycache__/
+*.pyc
+*.sqlite3
 
 # MiniCode local artifacts
 .mini-code/settings.local.json
