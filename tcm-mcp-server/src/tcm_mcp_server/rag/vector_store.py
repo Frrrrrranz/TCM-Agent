@@ -21,14 +21,18 @@ class VectorStore:
     管理多个集合（collections），支持文本的向量化存储与语义检索。
     """
 
-    def __init__(self, persist_dir: str | Path) -> None:
+    def __init__(self, persist_dir: str | Path, *, ephemeral: bool = False) -> None:
         """
         初始化向量库。
 
         Args:
-            persist_dir: ChromaDB 持久化目录
+            persist_dir: ChromaDB 持久化目录（ephemeral=True 时忽略）
+            ephemeral: 为 True 时使用纯内存客户端（EphemeralClient），
+                       规避 Windows 上 Rust 持久化后端的 access violation 问题。
+                       适用于测试环境。
         """
         self.persist_dir = Path(persist_dir)
+        self._ephemeral = ephemeral
         self._client = None
         self._collections: dict[str, object] = {}
 
@@ -39,10 +43,14 @@ class VectorStore:
 
         try:
             import chromadb
-            self._client = chromadb.PersistentClient(
-                path=str(self.persist_dir),
-            )
-            logger.info("ChromaDB 客户端已初始化: %s", self.persist_dir)
+            if self._ephemeral:
+                self._client = chromadb.EphemeralClient()
+                logger.info("ChromaDB EphemeralClient 已初始化（内存模式）")
+            else:
+                self._client = chromadb.PersistentClient(
+                    path=str(self.persist_dir),
+                )
+                logger.info("ChromaDB 客户端已初始化: %s", self.persist_dir)
         except ImportError:
             logger.warning("chromadb 未安装，向量检索功能不可用")
             self._client = None

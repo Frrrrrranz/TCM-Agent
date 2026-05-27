@@ -25,3 +25,8 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--basetemp=./tmp/pytest"
+asyncio_mode = "auto"
+

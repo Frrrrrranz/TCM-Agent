@@ -23,6 +23,7 @@ from tcm_mcp_server.data.seed_acupoints import seed_acupoints
 from tcm_mcp_server.data.seed_herbs import seed_herbs
 from tcm_mcp_server.data.seed_prescriptions import seed_prescriptions
 from tcm_mcp_server.data.seed_syndromes import seed_syndromes
+from tcm_mcp_server.data.build_chroma import build_vector_store
 from tcm_mcp_server.rag.pipeline import RAGPipeline
 from tcm_mcp_server.rag.retriever import HybridRetriever
 from tcm_mcp_server.rag.vector_store import VectorStore
@@ -46,3 +47,37 @@ def seeded_db(tmp_path: Path) -> Database:
 def pipeline(seeded_db: Database, tmp_path: Path) -> RAGPipeline:
     vector_store = VectorStore(tmp_path / "chroma")
     return RAGPipeline(HybridRetriever(seeded_db, vector_store))
+
+
+@pytest.fixture(scope="session")
+def seeded_vector_pipeline(tmp_path_factory: pytest.TempPathFactory) -> RAGPipeline:
+    """带种子数据向量索引的完整 pipeline（用于 RAG 评测）。
+
+    NOTE: 使用 LiteVectorStore（TF-IDF 余弦相似度）替代 ChromaDB，
+    规避 ChromaDB 1.5.x Rust 后端在 Windows 上的 access violation 崩溃。
+    LiteVectorStore 提供与 VectorStore 相同的 add_texts/similarity_search 接口。
+    CI（Linux）环境可切换回 ChromaDB。
+    """
+    import importlib.util
+    _lite_path = Path(__file__).resolve().parent / "rag" / "lite_vector_store.py"
+    _spec = importlib.util.spec_from_file_location("lite_vector_store", _lite_path)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    LiteVectorStore = _mod.LiteVectorStore
+
+    tmp_path = tmp_path_factory.mktemp("rag_eval")
+    db = Database(tmp_path / "tcm.db")
+    db.connect()
+    seed_herbs(db)
+    seed_prescriptions(db)
+    seed_syndromes(db)
+    seed_acupoints(db)
+
+    # NOTE: 使用 TF-IDF 轻量级向量存储，避免 ChromaDB Rust 崩溃
+    vector_store = LiteVectorStore()
+    build_vector_store(db, vector_store)
+
+    pipeline = RAGPipeline(HybridRetriever(db, vector_store))
+    yield pipeline
+    db.close()
+

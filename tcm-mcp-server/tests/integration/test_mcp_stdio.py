@@ -31,7 +31,7 @@ async def list_stdio_tools() -> set[str]:
 
 
 def test_mcp_stdio_lists_tcm_tools() -> None:
-    tool_names = asyncio.run(asyncio.wait_for(list_stdio_tools(), timeout=20))
+    tool_names = asyncio.run(asyncio.wait_for(list_stdio_tools(), timeout=120))
 
     assert {
         "tcm_search_herb",

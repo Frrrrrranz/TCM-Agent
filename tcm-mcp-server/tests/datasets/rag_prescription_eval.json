@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "name": "症状→方剂 RAG 评测集",
+    "version": "0.1",
+    "description": "基于《方剂学》教材，构建症状组合到方剂的标准映射。用于评估方剂检索的 Recall、MRR、NDCG。",
+    "source": "seed_prescriptions.py 中 14 个方剂的主治症状",
+    "total_cases": 15
+  },
+  "cases": [
+    {
+      "id": "pres-eval-001",
+      "description": "桂枝汤主治：太阳中风证",
+      "query": {
+        "symptoms": "头痛发热汗出恶风脉浮缓"
+      },
+      "expected": {
+        "relevant": ["桂枝汤"],
+        "partially_relevant": ["麻黄汤"]
+      }
+    },
+    {
+      "id": "pres-eval-002",
+      "description": "麻黄汤主治：太阳伤寒证",
+      "query": {
+        "symptoms": "恶寒发热头身疼痛无汗气喘"
+      },
+      "expected": {
+        "relevant": ["麻黄汤"],
+        "partially_relevant": ["桂枝汤"]
+      }
+    },
+    {
+      "id": "pres-eval-003",
+      "description": "银翘散主治：风热表证",
+      "query": {
+        "symptoms": "发热头痛口渴咳嗽咽痛"
+      },
+      "expected": {
+        "relevant": ["银翘散"],
+        "partially_relevant": ["白虎汤"]
+      }
+    },
+    {
+      "id": "pres-eval-004",
+      "description": "白虎汤主治：气分热盛",
+      "query": {
+        "symptoms": "壮热面赤烦渴引饮汗出脉洪大"
+      },
+      "expected": {
+        "relevant": ["白虎汤"],
+        "partially_relevant": ["黄连解毒汤"]
+      }
+    },
+    {
+      "id": "pres-eval-005",
+      "description": "小柴胡汤主治：少阳证",
+      "query": {
+        "symptoms": "往来寒热胸胁苦满心烦喜呕口苦"
+      },
+      "expected": {
+        "relevant": ["小柴胡汤"],
+        "partially_relevant": []
+      }
+    },
+    {
+      "id": "pres-eval-006",
+      "description": "大承气汤主治：阳明腑实证",
+      "query": {
+        "symptoms": "大便不通腹痛拒按潮热谵语"
+      },
+      "expected": {
+        "relevant": ["大承气汤"],
+        "partially_relevant": []
+      }
+    },
+    {
+      "id": "pres-eval-007",
+      "description": "理中丸主治：脾胃虚寒证",
+      "query": {
+        "symptoms": "脘腹疼痛喜温喜按呕吐泄泻畏寒肢冷"
+      },
+      "expected": {
+        "relevant": ["理中丸"],
+        "partially_relevant": ["四君子汤"]
+      }
+    },
+    {
+      "id": "pres-eval-008",
+      "description": "四君子汤主治：脾胃气虚证",
+      "query": {
+        "symptoms": "面色萎白气短乏力食少便溏脉虚弱"
+      },
+      "expected": {
+        "relevant": ["四君子汤"],
+        "partially_relevant": ["理中丸"]
+      }
+    },
+    {
+      "id": "pres-eval-009",
+      "description": "四物汤主治：营血虚滞证",
+      "query": {
+        "symptoms": "心悸失眠头晕目眩面色无华月经不调"
+      },
+      "expected": {
+        "relevant": ["四物汤"],
+        "partially_relevant": ["天王补心丹"]
+      }
+    },
+    {
+      "id": "pres-eval-010",
+      "description": "天王补心丹主治：心肾阴虚证",
+      "query": {
+        "symptoms": "心悸失眠虚烦神疲手足心热口舌生疮"
+      },
+      "expected": {
+        "relevant": ["天王补心丹"],
+        "partially_relevant": ["四物汤"]
+      }
+    },
+    {
+      "id": "pres-eval-011",
+      "description": "血府逐瘀汤主治：血瘀气滞证",
+      "query": {
+        "symptoms": "胸痛如刺痛有定处呃逆内热烦闷"
+      },
+      "expected": {
+        "relevant": ["血府逐瘀汤"],
+        "partially_relevant": []
+      }
+    },
+    {
+      "id": "pres-eval-012",
+      "description": "二陈汤主治：湿痰证",
+      "query": {
+        "symptoms": "咳嗽痰多色白易咯胸膈痞闷恶心呕吐"
+      },
+      "expected": {
+        "relevant": ["二陈汤"],
+        "partially_relevant": []
+      }
+    },
+    {
+      "id": "pres-eval-013",
+      "description": "越鞠丸主治：气郁证",
+      "query": {
+        "symptoms": "胸膈痞闷脘腹胀痛嗳腐吞酸恶心呕吐"
+      },
+      "expected": {
+        "relevant": ["越鞠丸"],
+        "partially_relevant": ["二陈汤"]
+      }
+    },
+    {
+      "id": "pres-eval-014",
+      "description": "模糊查询：口语化描述",
+      "query": {
+        "symptoms": "肚子胀痛打嗝反酸恶心想吐"
+      },
+      "expected": {
+        "relevant": ["越鞠丸"],
+        "partially_relevant": ["二陈汤", "理中丸"]
+      }
+    },
+    {
+      "id": "pres-eval-015",
+      "description": "黄连解毒汤主治：三焦火毒证",
+      "query": {
+        "symptoms": "大热烦躁口燥咽干吐血衄血发斑"
+      },
+      "expected": {
+        "relevant": ["黄连解毒汤"],
+        "partially_relevant": ["白虎汤"]
+      }
+    }
+  ]
+}
