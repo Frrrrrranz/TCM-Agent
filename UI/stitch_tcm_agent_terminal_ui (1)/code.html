@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TCM-Agent Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#e5e2e1",
+                        "surface-dim": "#131313",
+                        "on-surface-variant": "#bec9c2",
+                        "secondary-fixed-dim": "#b4ccc2",
+                        "secondary-container": "#384d46",
+                        "on-background": "#e5e2e1",
+                        "on-secondary-fixed-variant": "#364b44",
+                        "on-secondary-fixed": "#0a1f19",
+                        "tertiary": "#ffb3ae",
+                        "surface-bright": "#3a3939",
+                        "secondary-fixed": "#d0e8de",
+                        "on-tertiary-fixed-variant": "#76312f",
+                        "tertiary-container": "#d07873",
+                        "primary-container": "#4ca081",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-low": "#1c1b1b",
+                        "inverse-on-surface": "#313030",
+                        "on-secondary-container": "#a6beb4",
+                        "surface-container-highest": "#353534",
+                        "on-error": "#690005",
+                        "on-surface": "#e5e2e1",
+                        "surface-container": "#201f1f",
+                        "primary-fixed-dim": "#83d7b5",
+                        "secondary": "#b4ccc2",
+                        "on-primary": "#003828",
+                        "outline-variant": "#3f4944",
+                        "on-tertiary-container": "#501514",
+                        "on-tertiary": "#591b1a",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#ffdad7",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#3d0608",
+                        "background": "#131313",
+                        "on-primary-fixed": "#002116",
+                        "surface-container-high": "#2a2a2a",
+                        "outline": "#88938d",
+                        "surface": "#131313",
+                        "inverse-primary": "#056c50",
+                        "primary": "#83d7b5",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#00513b",
+                        "on-primary-container": "#003122",
+                        "surface-tint": "#83d7b5",
+                        "tertiary-fixed-dim": "#ffb3ae",
+                        "on-secondary": "#20342e",
+                        "surface-variant": "#353534",
+                        "primary-fixed": "#9ff4d0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "gutter": "16px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "margin-desktop": "32px",
+                        "lg": "24px",
+                        "base": "4px",
+                        "xl": "48px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["JetBrains Mono"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-lg": ["15px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.08em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md": ["13px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface h-screen w-full flex flex-col font-body-md overflow-hidden antialiased">
+<!-- TopAppBar (Mobile optimized) -->
+<header class="bg-surface-container dark:bg-surface-container fixed top-0 w-full z-50 flex justify-between items-center px-gutter h-14 border-b border-outline-variant dark:border-outline-variant flex-shrink-0">
+<div class="flex items-center gap-sm">
+<button aria-label="Menu" class="md:hidden p-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">TCM-Agent</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="hidden md:flex items-center gap-md mr-md">
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors px-sm py-xs rounded-DEFAULT" href="#">Claude Sonnet 4.5</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors px-sm py-xs rounded-DEFAULT" href="#">4.2k / 200k</a>
+</div>
+<!-- Mobile context badge -->
+<div class="md:hidden flex flex-col items-end">
+<span class="font-code-sm text-code-sm text-on-surface-variant opacity-70">Claude 4.5</span>
+<div class="h-[2px] w-12 bg-surface-container-highest mt-xs rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[2%]"></div>
+</div>
+</div>
+<button aria-label="Settings" class="p-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Chat Area -->
+<main class="flex-grow pt-14 pb-20 overflow-y-auto px-margin-mobile flex flex-col gap-lg w-full max-w-[1024px] mx-auto">
+<!-- Welcome Message (System) -->
+<div class="mt-md flex flex-col gap-sm">
+<div class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-xs">
+<span class="text-primary opacity-50">SYSTEM_INIT</span>
+<span class="h-px w-4 bg-outline-variant"></span>
+<span>14:32:01</span>
+</div>
+<div class="bg-surface-container-low p-sm rounded-lg border border-outline-variant border-l-2 border-l-surface-variant">
+<p class="font-code-sm text-code-sm text-on-surface-variant opacity-80">
+                    &gt; Diagnostic module loaded.<br/>
+                    &gt; Knowledge base: Shanghan Lun, Jin Gui Yao Lue connected.<br/>
+                    &gt; Ready for input.
+                </p>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex flex-col gap-sm items-end mt-sm">
+<div class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-xs">
+<span>14:33:12</span>
+<span class="h-px w-4 bg-outline-variant"></span>
+<span class="text-on-surface">PRACTITIONER</span>
+</div>
+<div class="bg-surface-container p-md rounded-lg border border-outline-variant max-w-[90%] md:max-w-[70%]">
+<p class="font-body-md text-body-md text-on-surface">
+                    Patient presents with chronic fatigue, loose stools, and cold extremities. Pulse is weak and deep. Tongue is pale with a white coating. 
+                    Suspect Spleen and Stomach deficiency cold. What formulas from the Shanghan Lun address this specific presentation?
+                </p>
+</div>
+</div>
+<!-- Tool Execution Widget -->
+<div class="flex flex-col gap-xs pl-sm border-l border-outline-variant ml-sm mt-xs">
+<div class="inline-flex items-center gap-xs bg-secondary-container bg-opacity-30 border border-secondary-container px-sm py-xs rounded-full w-max">
+<span class="font-label-caps text-label-caps text-secondary">
+                     [tool] rag_search
+                 </span>
+<span class="text-on-surface-variant mx-xs">•</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">"脾胃虚寒 Shanghan Lun formulas"</span>
+<span class="material-symbols-outlined text-primary text-[14px] ml-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="pl-md font-code-sm text-code-sm text-on-surface-variant opacity-60">
+                 &gt; Retrieved 3 relevant texts from Shanghan Lun (0.42s)
+             </div>
+</div>
+<!-- Assistant Message -->
+<div class="flex flex-col gap-sm mt-xs">
+<div class="font-label-caps text-label-caps text-primary flex items-center gap-xs">
+<span>⚕ TCM-AGENT</span>
+<span class="h-px w-4 bg-outline-variant"></span>
+<span class="text-on-surface-variant">14:33:45</span>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant border-l-[3px] border-l-primary flex flex-col gap-md">
+<div class="flex flex-col gap-xs">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant border-b border-outline-variant pb-xs uppercase">【辨证结果】 Diagnostic Assessment</h3>
+<p class="font-body-md text-body-md text-on-surface mt-xs">
+                        Based on the symptoms provided (fatigue, loose stools, cold extremities, deep/weak pulse, pale tongue with white coat), the presentation strongly indicates <strong>Spleen and Stomach Deficiency Cold (脾胃虚寒)</strong>, specifically leaning towards a Taiyin (Greater Yin) stage disorder in the Shanghan Lun framework.
+                    </p>
+</div>
+<div class="flex flex-col gap-xs">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant border-b border-outline-variant pb-xs uppercase">【经典方剂】 Recommended Formulas (Shanghan Lun)</h3>
+<div class="mt-sm flex flex-col gap-sm">
+<!-- Formula 1 -->
+<div class="bg-surface p-sm rounded-DEFAULT border border-outline-variant">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-headline-md text-headline-md text-primary">Li Zhong Wan (理中丸)</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant border border-outline-variant px-xs py-[2px] rounded-DEFAULT">Clause 386</span>
+</div>
+<ul class="font-code-sm text-code-sm text-on-surface-variant space-y-xs ml-xs">
+<li>&gt; Ren Shen (Ginseng)</li>
+<li>&gt; Gan Cao (Licorice)</li>
+<li>&gt; Bai Zhu (Atractylodes)</li>
+<li>&gt; Gan Jiang (Dried Ginger)</li>
+</ul>
+<p class="font-body-md text-body-md text-on-surface mt-xs text-[12px]">
+                                Primary formula for warming the Middle Jiao and strengthening the Spleen. Specifically addresses the core mechanics of Taiyin cold dampness.
+                            </p>
+</div>
+<!-- Formula 2 -->
+<div class="bg-surface p-sm rounded-DEFAULT border border-outline-variant">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-headline-md text-headline-md text-secondary">Si Ni Tang (四逆汤)</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant border border-outline-variant px-xs py-[2px] rounded-DEFAULT">Clause 29</span>
+</div>
+<ul class="font-code-sm text-code-sm text-on-surface-variant space-y-xs ml-xs">
+<li>&gt; Zhi Fu Zi (Prepared Aconite)</li>
+<li>&gt; Gan Jiang (Dried Ginger)</li>
+<li>&gt; Zhi Gan Cao (Prepared Licorice)</li>
+</ul>
+<p class="font-body-md text-body-md text-on-surface mt-xs text-[12px]">
+                                Consider if the "cold extremities" (Jue Ni) are severe and systemic Yang deficiency is pronounced (Shaoyin involvement).
+                            </p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-xs mt-sm">
+<div class="inline-flex items-center gap-xs text-primary cursor-pointer hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span class="font-label-caps text-label-caps">View Full Shanghan Lun Clause 386</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer for scrolling past fixed bottom input -->
+<div class="h-4"></div>
+</main>
+<!-- Bottom Input Area (Fixed) -->
+<div class="fixed bottom-0 w-full bg-background border-t border-outline-variant p-margin-mobile flex-shrink-0 z-40">
+<div class="max-w-[1024px] mx-auto flex flex-col gap-sm">
+<div class="relative flex items-center">
+<span class="absolute left-0 pl-xs font-code-sm text-code-sm text-primary select-none">&gt;</span>
+<input class="w-full bg-transparent border-0 border-b border-outline-variant pl-lg pr-xl py-sm font-code-sm text-code-sm text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:border-primary focus:outline-none transition-colors" placeholder="Enter clinical observation or query..." type="text"/>
+<button aria-label="Send" class="absolute right-0 p-xs text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex gap-sm">
+<button class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors border border-outline-variant px-sm py-xs rounded-DEFAULT flex items-center gap-xs bg-surface-container-low">
+<span class="material-symbols-outlined text-[14px]">add</span>
+                        Upload Lab Data
+                    </button>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant opacity-50 hidden md:block">
+                    [Ctrl] + [Enter] to send
+                </span>
+</div>
+</div>
+</div>
+</body></html>
