@@ -23,20 +23,20 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: TCM-Agent/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: TCM-Agent
+        working-directory: .
         run: npm ci
 
       # TypeScript 强类型校验，确保无 any / 类型不匹配
       - name: Type check
-        working-directory: TCM-Agent
+        working-directory: .
         run: npm run check
 
       # 运行主 Agent 的全量测试用例（当前 204 个）
       - name: Run tests
-        working-directory: TCM-Agent
+        working-directory: .
         run: npm test
 
   # ─── Python MCP Server 验证 ───────────────────────────────────────────
@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: TCM-Agent/tcm-mcp-server/pyproject.toml
+          cache-dependency-path: tcm-mcp-server/pyproject.toml
 
       # NOTE: 缓存 ChromaDB 下载的 ONNX Embedding 模型（约 79MB）。
       # 该模型存储在 ~/.cache/chroma，由 chromadb 在首次调用时自动下载。
@@ -66,7 +66,7 @@ jobs:
           key: chroma-onnx-${{ runner.os }}-v1
 
       - name: Install dependencies
-        working-directory: TCM-Agent/tcm-mcp-server
+        working-directory: tcm-mcp-server
         run: |
           pip install --upgrade pip
           pip install -e ".[dev]"
@@ -74,7 +74,7 @@ jobs:
       # PYTEST_DISABLE_PLUGIN_AUTOLOAD=1：禁用全局 Anaconda pytest 插件（NumPy 2 兼容冲突）
       # --ignore=tests/integration：集成测试依赖 MCP stdio 进程启动，在 CI 中按需分离执行
       - name: Run Python Harness
-        working-directory: TCM-Agent/tcm-mcp-server
+        working-directory: tcm-mcp-server
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: pytest tests -q --ignore=tests/integration
