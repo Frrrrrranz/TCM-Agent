@@ -286,6 +286,12 @@ export class OpenAIModelAdapter implements ModelAdapter {
       max_tokens: maxOutputTokens,
     }
 
+    // NOTE: 仅在显式配置时才传 temperature，OpenAI 公共 API 的有效范围是 0-2。
+    // DeepSeek 和其他 OpenAI 兑容接口通常也支持该参数，直接透传。
+    if (runtime.temperature !== undefined) {
+      requestBody.temperature = Math.min(2, Math.max(0, runtime.temperature))
+    }
+
     // 只有存在可用工具时才传入 tools 字段，避免空数组导致某些 API 报错
     if (openAITools.length > 0) {
       requestBody.tools = openAITools

@@ -7,6 +7,10 @@ export type MiniCodeSettings = {
   env?: Record<string, string | number>
   model?: string
   maxOutputTokens?: number
+  // NOTE: temperature 控制模型输出的随机性。
+  // 中医辨证场景应使用低值（0.1-0.3），确保证型/方剂输出结构稳定；
+  // 开放问答场景可适当调高（0.7-1.0）。
+  temperature?: number
   mcpServers?: Record<string, McpServerConfig>
 }
 
@@ -27,6 +31,9 @@ export type RuntimeConfig = {
   authToken?: string
   apiKey?: string
   maxOutputTokens?: number
+  // NOTE: 未设置时由适配器使用 provider 默认值（通常为 1.0）。
+  // TCM-Agent 在辨证推理场景中应显式设置为 0.2，以保证输出的结构一致性。
+  temperature?: number
   mcpServers: Record<string, McpServerConfig>
   sourceSummary: string
 }
@@ -227,6 +234,19 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
       ? Math.floor(parsedMaxOutputTokens)
       : undefined
 
+  // NOTE: temperature 读取优先级：环境变量 TCM_TEMPERATURE / MINI_CODE_TEMPERATURE > settings.json
+  // TCM-Agent 辨证场景建议设置为 0.2，开放问答场景可不设置（使用 provider 默认值）。
+  const rawTemperature =
+    process.env.TCM_TEMPERATURE ??
+    process.env.MINI_CODE_TEMPERATURE ??
+    effectiveSettings.temperature
+  const parsedTemperature =
+    rawTemperature === undefined ? NaN : Number(rawTemperature)
+  const temperature =
+    Number.isFinite(parsedTemperature) && parsedTemperature >= 0 && parsedTemperature <= 2
+      ? parsedTemperature
+      : undefined
+
   if (!model) {
     throw new Error(
       `No model configured. Set ~/.mini-code/settings.json or env.ANTHROPIC_MODEL.`,
@@ -245,6 +265,7 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
     authToken,
     apiKey,
     maxOutputTokens,
+    temperature,
     mcpServers: effectiveSettings.mcpServers ?? {},
     sourceSummary: `config: ${MINI_CODE_SETTINGS_PATH} > ${CLAUDE_SETTINGS_PATH} > process.env`,
   }

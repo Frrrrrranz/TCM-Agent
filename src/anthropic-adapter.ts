@@ -327,7 +327,7 @@ export class AnthropicModelAdapter implements ModelAdapter {
       headers['x-api-key'] = runtime.apiKey
     }
 
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       model: runtime.model,
       system: payload.system,
       messages: payload.messages,
@@ -337,6 +337,12 @@ export class AnthropicModelAdapter implements ModelAdapter {
         input_schema: tool.inputSchema,
       })),
       max_tokens: maxOutputTokens,
+    }
+
+    // NOTE: 仅在显式配置时才传 temperature，避免覆盖 provider 内部的合理默认值。
+    // Anthropic API 的有效范围是 0-1，超出会报 validation error。
+    if (runtime.temperature !== undefined) {
+      requestBody.temperature = Math.min(1, Math.max(0, runtime.temperature))
     }
 
     const maxRetries = getRetryLimit()

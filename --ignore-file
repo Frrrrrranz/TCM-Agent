@@ -1,0 +1,1075 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": "--ignore-file",
+      "language": "unknown",
+      "sizeLines": 1068,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".github/workflows/tcm-harness.yml",
+      "language": "yaml",
+      "sizeLines": 80,
+      "fileCategory": "infra"
+    },
+    {
+      "path": ".gitmodules",
+      "language": "unknown",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".mcp.json",
+      "language": "json",
+      "sizeLines": 17,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".tcm-agent/rules/tcm-diagnostics.md",
+      "language": "markdown",
+      "sizeLines": 127,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/rules/tcm-herbology.md",
+      "language": "markdown",
+      "sizeLines": 138,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/rules/tcm-prescriptions.md",
+      "language": "markdown",
+      "sizeLines": 151,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/rules/tcm-safety.md",
+      "language": "markdown",
+      "sizeLines": 126,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/skills/tcm-case-analysis/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 113,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/skills/tcm-diagnosis/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 87,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/skills/tcm-herb-query/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 81,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".tcm-agent/skills/tcm-prescription-match/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 99,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "进度/Sum.md",
+      "language": "markdown",
+      "sizeLines": 299,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ARCHITECTURE_ZH.md",
+      "language": "markdown",
+      "sizeLines": 99,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "language": "markdown",
+      "sizeLines": 97,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "bin/minicode",
+      "language": "unknown",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "CLAUDE_CODE_PATTERNS_ZH.md",
+      "language": "markdown",
+      "sizeLines": 186,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CLAUDE_CODE_PATTERNS.md",
+      "language": "markdown",
+      "sizeLines": 191,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CONTRIBUTING_ZH.md",
+      "language": "markdown",
+      "sizeLines": 161,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "language": "markdown",
+      "sizeLines": 163,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/.nojekyll",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "docs/index.html",
+      "language": "html",
+      "sizeLines": 1231,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "eslint.config.js",
+      "language": "javascript",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "sizeLines": 28,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 361,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "language": "markdown",
+      "sizeLines": 361,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ROADMAP_ZH.md",
+      "language": "markdown",
+      "sizeLines": 156,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ROADMAP.md",
+      "language": "markdown",
+      "sizeLines": 156,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "src/agent-loop.ts",
+      "language": "typescript",
+      "sizeLines": 462,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/anthropic-adapter.ts",
+      "language": "typescript",
+      "sizeLines": 438,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/background-tasks.ts",
+      "language": "typescript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/cli-commands.ts",
+      "language": "typescript",
+      "sizeLines": 279,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/auto-compact.ts",
+      "language": "typescript",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/compact.ts",
+      "language": "typescript",
+      "sizeLines": 200,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/constants.ts",
+      "language": "typescript",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/context-collapse.ts",
+      "language": "typescript",
+      "sizeLines": 701,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/manual-compact.ts",
+      "language": "typescript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/microcompact.ts",
+      "language": "typescript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/prompt.ts",
+      "language": "typescript",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/compact/snipCompact.ts",
+      "language": "typescript",
+      "sizeLines": 499,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/config.ts",
+      "language": "typescript",
+      "sizeLines": 251,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/file-review.ts",
+      "language": "typescript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/history.ts",
+      "language": "typescript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/index.ts",
+      "language": "typescript",
+      "sizeLines": 292,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/init.ts",
+      "language": "typescript",
+      "sizeLines": 343,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/install.ts",
+      "language": "typescript",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/local-tool-shortcuts.ts",
+      "language": "typescript",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/manage-cli.ts",
+      "language": "typescript",
+      "sizeLines": 290,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/mcp-status.ts",
+      "language": "typescript",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/mcp.ts",
+      "language": "typescript",
+      "sizeLines": 1277,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/memory.ts",
+      "language": "typescript",
+      "sizeLines": 264,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/mock-model.ts",
+      "language": "typescript",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/openai-adapter.ts",
+      "language": "typescript",
+      "sizeLines": 380,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/permissions.ts",
+      "language": "typescript",
+      "sizeLines": 501,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/prompt.ts",
+      "language": "typescript",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/session.ts",
+      "language": "typescript",
+      "sizeLines": 708,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/skills.ts",
+      "language": "typescript",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tool.ts",
+      "language": "typescript",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/ask-user.ts",
+      "language": "typescript",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/edit-file.ts",
+      "language": "typescript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/grep-files.ts",
+      "language": "typescript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/index.ts",
+      "language": "typescript",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/list-files.ts",
+      "language": "typescript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/load-skill.ts",
+      "language": "typescript",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/modify-file.ts",
+      "language": "typescript",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/patch-file.ts",
+      "language": "typescript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/read-file.ts",
+      "language": "typescript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/run-command.ts",
+      "language": "typescript",
+      "sizeLines": 244,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/web-fetch.ts",
+      "language": "typescript",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/web-search.ts",
+      "language": "typescript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tools/write-file.ts",
+      "language": "typescript",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tty-app.ts",
+      "language": "typescript",
+      "sizeLines": 2221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/chrome.ts",
+      "language": "typescript",
+      "sizeLines": 751,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/index.ts",
+      "language": "typescript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/input-parser.ts",
+      "language": "typescript",
+      "sizeLines": 290,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/input.ts",
+      "language": "typescript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/markdown.ts",
+      "language": "typescript",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/screen.ts",
+      "language": "typescript",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/transcript.ts",
+      "language": "typescript",
+      "sizeLines": 277,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/tui/types.ts",
+      "language": "typescript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/types.ts",
+      "language": "typescript",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/ui.ts",
+      "language": "typescript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/context.ts",
+      "language": "typescript",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/errors.ts",
+      "language": "typescript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/model-context.ts",
+      "language": "typescript",
+      "sizeLines": 139,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/token-estimator.ts",
+      "language": "typescript",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/tool-result-storage.ts",
+      "language": "typescript",
+      "sizeLines": 292,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/utils/web.ts",
+      "language": "typescript",
+      "sizeLines": 506,
+      "fileCategory": "code"
+    },
+    {
+      "path": "src/workspace.ts",
+      "language": "typescript",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "TCM-AGENT.md",
+      "language": "markdown",
+      "sizeLines": 70,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "TCM-ARCHITECTURE.md",
+      "language": "markdown",
+      "sizeLines": 712,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "tcm-mcp-server/data/chroma/chroma.sqlite3",
+      "language": "sqlite3",
+      "sizeLines": 490,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/data/tcm.db",
+      "language": "db",
+      "sizeLines": 150,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/__init__.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/build_chroma.py",
+      "language": "python",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/database.py",
+      "language": "python",
+      "sizeLines": 496,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/import_sqlite.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/normalize_markdown.py",
+      "language": "python",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/parse_herbs.py",
+      "language": "python",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/review_queue.py",
+      "language": "python",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/schema.py",
+      "language": "python",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/seed_acupoints.py",
+      "language": "python",
+      "sizeLines": 241,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/seed_herbs.py",
+      "language": "python",
+      "sizeLines": 460,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/seed_prescriptions.py",
+      "language": "python",
+      "sizeLines": 244,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/seed_syndromes.py",
+      "language": "python",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/data/validate_records.py",
+      "language": "python",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/__init__.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/acupoint.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/herb.py",
+      "language": "python",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/prescription.py",
+      "language": "python",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/syndrome.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/models/traceability.py",
+      "language": "python",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/rag/__init__.py",
+      "language": "python",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/rag/embeddings.py",
+      "language": "python",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/rag/pipeline.py",
+      "language": "python",
+      "sizeLines": 283,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/rag/retriever.py",
+      "language": "python",
+      "sizeLines": 227,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/rag/vector_store.py",
+      "language": "python",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/server.py",
+      "language": "python",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/__init__.py",
+      "language": "python",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/acupoint_search.py",
+      "language": "python",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/classic_case.py",
+      "language": "python",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/diagnosis_syndrome.py",
+      "language": "python",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/drug_interaction.py",
+      "language": "python",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/search_herb.py",
+      "language": "python",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/src/tcm_mcp_server/tools/search_prescription.py",
+      "language": "python",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/conftest.py",
+      "language": "python",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/datasets/drug_interaction.json",
+      "language": "json",
+      "sizeLines": 40,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tcm-mcp-server/tests/datasets/herb_query.json",
+      "language": "json",
+      "sizeLines": 48,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tcm-mcp-server/tests/datasets/rag_prescription_eval.json",
+      "language": "json",
+      "sizeLines": 176,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tcm-mcp-server/tests/datasets/rag_syndrome_eval.json",
+      "language": "json",
+      "sizeLines": 206,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_import_sqlite.py",
+      "language": "python",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_markdown_normalize.py",
+      "language": "python",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_parse_herbs.py",
+      "language": "python",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_review_queue.py",
+      "language": "python",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_source_traceability.py",
+      "language": "python",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/ingestion/test_validate_records.py",
+      "language": "python",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/integration/test_mcp_stdio.py",
+      "language": "python",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/evaluation_report.md",
+      "language": "markdown",
+      "sizeLines": 82,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/generate_report.py",
+      "language": "python",
+      "sizeLines": 338,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/lite_vector_store.py",
+      "language": "python",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/metrics.py",
+      "language": "python",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/test_rag_prescription.py",
+      "language": "python",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/rag/test_rag_syndrome.py",
+      "language": "python",
+      "sizeLines": 231,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/safety/test_drug_interaction.py",
+      "language": "python",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tcm-mcp-server/tests/unit/test_search_herb.py",
+      "language": "python",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/anthropic-thinking-roundtrip.test.ts",
+      "language": "typescript",
+      "sizeLines": 287,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/auto-compact.test.ts",
+      "language": "typescript",
+      "sizeLines": 172,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/compact.test.ts",
+      "language": "typescript",
+      "sizeLines": 271,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/context-badge.test.ts",
+      "language": "typescript",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/context-collapse.test.ts",
+      "language": "typescript",
+      "sizeLines": 569,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/init.test.ts",
+      "language": "typescript",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/input-parser.test.ts",
+      "language": "typescript",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/local-tool-shortcuts.test.ts",
+      "language": "typescript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/memory.test.ts",
+      "language": "typescript",
+      "sizeLines": 435,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/microcompact.test.ts",
+      "language": "typescript",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/model-context.test.ts",
+      "language": "typescript",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/mouse-release-selection.test.ts",
+      "language": "typescript",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/provider-usage-ingestion.test.ts",
+      "language": "typescript",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/run-tests.mjs",
+      "language": "javascript",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/session.test.ts",
+      "language": "typescript",
+      "sizeLines": 787,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/skills.test.ts",
+      "language": "typescript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/snip-compact.test.ts",
+      "language": "typescript",
+      "sizeLines": 504,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/token-estimator.test.ts",
+      "language": "typescript",
+      "sizeLines": 233,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/tool-result-storage.test.ts",
+      "language": "typescript",
+      "sizeLines": 206,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/transcript-cjk-selection.test.ts",
+      "language": "typescript",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/transcript-wrapping.test.ts",
+      "language": "typescript",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "test/windows-clipboard-encoding.test.ts",
+      "language": "typescript",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tsconfig.json",
+      "language": "json",
+      "sizeLines": 14,
+      "fileCategory": "config"
+    },
+    {
+      "path": "USAGE_ZH.md",
+      "language": "markdown",
+      "sizeLines": 491,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "USAGE.md",
+      "language": "markdown",
+      "sizeLines": 492,
+      "fileCategory": "docs"
+    }
+  ],
+  "totalFiles": 174,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "large",
+  "stats": {
+    "filesScanned": 174,
+    "byCategory": {
+      "code": 140,
+      "infra": 1,
+      "config": 8,
+      "docs": 24,
+      "markup": 1
+    },
+    "byLanguage": {
+      "unknown": 4,
+      "yaml": 1,
+      "json": 7,
+      "markdown": 24,
+      "html": 1,
+      "javascript": 2,
+      "typescript": 82,
+      "sqlite3": 1,
+      "db": 1,
+      "toml": 1,
+      "python": 50
+    }
+  }
+}
