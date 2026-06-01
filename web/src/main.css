@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+@theme {
+  /* Stitch 配色系统迁移 */
+  --color-background: #0d0d0d;
+  --color-surface: #131313;
+  --color-surface-dim: #131313;
+  --color-surface-bright: #3a3939;
+  
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353534;
+  
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #bec9c2;
+  --color-inverse-surface: #e5e2e1;
+  --color-inverse-on-surface: #313030;
+  
+  --color-outline: #88938d;
+  --color-outline-variant: #3f4944;
+  
+  --color-primary: #83d7b5; /* Jade Green */
+  --color-on-primary: #003828;
+  --color-primary-container: #4ca081;
+  --color-on-primary-container: #003122;
+  --color-inverse-primary: #056c50;
+  
+  --color-secondary: #b4ccc2;
+  --color-on-secondary: #20342e;
+  --color-secondary-container: #384d46;
+  --color-on-secondary-container: #a6beb4;
+  
+  --color-tertiary: #ffb3ae;
+  --color-on-tertiary: #591b1a;
+  --color-tertiary-container: #d07873;
+  --color-on-tertiary-container: #501514;
+  
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  
+  --color-primary-fixed: #9ff4d0;
+  --color-primary-fixed-dim: #83d7b5;
+  --color-on-primary-fixed: #002116;
+  --color-on-primary-fixed-variant: #00513b;
+  
+  --color-secondary-fixed: #d0e8de;
+  --color-secondary-fixed-dim: #b4ccc2;
+  --color-on-secondary-fixed: #0a1f19;
+  --color-on-secondary-fixed-variant: #364b44;
+  
+  --color-tertiary-fixed: #ffdad7;
+  --color-tertiary-fixed-dim: #ffb3ae;
+  --color-on-tertiary-fixed: #3d0608;
+  --color-on-tertiary-fixed-variant: #76312f;
+  
+  --color-surface-variant: #353534;
+  --color-surface-tint: #83d7b5;
+
+  /* 边框角半径 (统一为 Semi-Square 几何风格) */
+  --radius-sm: 0.125rem;
+  --radius-DEFAULT: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --spacing-sm: 8px;
+  --spacing-gutter: 16px;
+  --spacing-margin-mobile: 16px;
+  --spacing-xs: 4px;
+  --spacing-margin-desktop: 32px;
+  --spacing-lg: 24px;
+  --spacing-base: 4px;
+  --spacing-xl: 48px;
+  --spacing-md: 16px;
+
+  /* 字体策略 */
+  --font-headline-lg: "Inter", sans-serif;
+  --font-headline-md: "Inter", sans-serif;
+  --font-body-lg: "JetBrains Mono", monospace;
+  --font-body-md: "JetBrains Mono", monospace;
+  --font-label-caps: "JetBrains Mono", monospace;
+  --font-code-sm: "JetBrains Mono", monospace;
+
+  /* 文字尺寸与行高 */
+  --text-headline-lg: 24px;
+  --text-headline-md: 18px;
+  --text-body-lg: 15px;
+  --text-body-md: 13px;
+  --text-label-caps: 11px;
+  --text-code-sm: 12px;
+}
+
+/* 全局滚动条和通用基底样式 */
+body {
+  background-color: #0d0d0d;
+}
+
+.terminal-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.terminal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-scroll::-webkit-scrollbar-thumb {
+  background: #353534;
+  border-radius: 4px;
+}
+
+.terminal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #88938d;
+}
+
+/* ⚕ Stitch 诊断控制台动画及高光动效 */
+.pulse-glow {
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% { border-color: rgba(131, 215, 181, 0.2); box-shadow: 0 0 0 0 rgba(131, 215, 181, 0.1); }
+  50% { border-color: rgba(131, 215, 181, 0.6); box-shadow: 0 0 8px 0 rgba(131, 215, 181, 0.2); }
+  100% { border-color: rgba(131, 215, 181, 0.2); box-shadow: 0 0 0 0 rgba(131, 215, 181, 0); }
+}
+
+.blink {
+  animation: blinker 1s step-end infinite;
+}
+
+@keyframes blinker {
+  50% { opacity: 0; }
+}
+
+.pulse-warning {
+  animation: pulse-warning-glow 2s infinite;
+}
+
+@keyframes pulse-warning-glow {
+  0% { box-shadow: 0 0 0 0 rgba(255, 180, 171, 0.4); border-color: rgba(255, 180, 171, 0.8); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 180, 171, 0); border-color: rgba(255, 180, 171, 0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 180, 171, 0); border-color: rgba(255, 180, 171, 0.8); }
+}
+
+.glow-text {
+  animation: text-pulse 2s infinite;
+}
+
+@keyframes text-pulse {
+  0%, 100% { text-shadow: 0 0 4px rgba(131, 215, 181, 0.3); }
+  50% { text-shadow: 0 0 10px rgba(131, 215, 181, 0.8); }
+}
+
+.timeline-node {
+  animation: slide-up-fade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+.timeline-node:nth-child(1) { animation-delay: 0.05s; }
+.timeline-node:nth-child(2) { animation-delay: 0.15s; }
+.timeline-node:nth-child(3) { animation-delay: 0.25s; }
+.timeline-node:nth-child(4) { animation-delay: 0.35s; }
+
+@keyframes slide-up-fade {
+  to { opacity: 1; transform: translateY(0); }
+}

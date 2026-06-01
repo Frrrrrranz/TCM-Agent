@@ -20,6 +20,7 @@ import type { ChatMessage } from './types.js'
 import { renderBanner } from './ui.js'
 import { runTtyApp } from './tty-app.js'
 import { runAgentTurn } from './agent-loop.js'
+import { runJsonModeServer } from './json-server.js'
 import {
   applyContextCollapseIfNeeded,
   createContextCollapseState,
@@ -89,6 +90,14 @@ async function main(): Promise<void> {
       : isAnthropicNative
         ? new AnthropicModelAdapter(tools, loadRuntimeConfig)
         : new OpenAIModelAdapter(tools, loadRuntimeConfig)
+
+  if (argv.includes('--json-mode')) {
+    await runJsonModeServer({ cwd, tools, model, permissions, runtime })
+    await mcpHydration
+    await tools.dispose()
+    return
+  }
+
   let messages: ChatMessage[] = [
     {
       role: 'system',

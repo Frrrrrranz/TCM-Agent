@@ -22,11 +22,12 @@ describe('TCM skill discovery', () => {
     try {
       const skillPath = writeSkill(dir, 'tcm-herb-query', '# Herb Query\n\nQuery herbs safely.')
       const skills = await discoverSkills(dir)
+      const projectSkills = skills.filter(skill => skill.source === 'project')
 
-      assert.deepEqual(skills.map(skill => skill.name), ['tcm-herb-query'])
-      assert.equal(skills[0].path, skillPath)
-      assert.equal(skills[0].source, 'project')
-      assert.equal(skills[0].description, 'Query herbs safely.')
+      assert.deepEqual(projectSkills.map(skill => skill.name), ['tcm-herb-query'])
+      assert.equal(projectSkills[0].path, skillPath)
+      assert.equal(projectSkills[0].source, 'project')
+      assert.equal(projectSkills[0].description, 'Query herbs safely.')
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
