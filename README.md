@@ -1,4 +1,4 @@
-# 🏥 TCM-Agent — 中医药智能辅助决策系统
+# 🏥 TCM-Agent — 中医药全链路智能问答系统
 
 <p align="center">
   <img src="./docs/logo.svg" alt="TCM-Agent Logo" width="180" />
