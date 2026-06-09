@@ -10,7 +10,7 @@ on:
 jobs:
   # ─── TypeScript Agent 验证 ────────────────────────────────────────────
   typescript-check:
-    name: TypeScript Agent (Node.js 20)
+    name: TypeScript Agent (Node.js 22)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
@@ -40,7 +40,7 @@ jobs:
         run: npm test
 
   web-ui-build:
-    name: Web UI Build (Node.js 20)
+    name: Web UI Build (Node.js 22)
     runs-on: ubuntu-latest
 
     steps:
@@ -50,7 +50,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
