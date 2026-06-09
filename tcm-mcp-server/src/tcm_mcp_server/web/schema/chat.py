@@ -19,6 +19,8 @@ class WebSocketMessage(BaseModel):
     is_error: Optional[bool] = Field(None, alias="isError", description="工具执行或大模型请求是否失败")
     messages: Optional[List[dict[str, Any]]] = Field(None, description="Turn 结束后的完整消息历史")
     modelName: Optional[str] = Field(None, description="init 帧携带的模型名称，用于前端动态展示")
+    session_id: Optional[str] = Field(None, alias="sessionId", description="当前会话的 UUID")
+    request_id: Optional[str] = Field(None, alias="requestId", description="当前对话轮次的 UUID")
 
     class Config:
         populate_by_name = True

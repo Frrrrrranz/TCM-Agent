@@ -18,14 +18,22 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
     按行监听用户输入消息，调度 AgentService 驱动核心 Agent，
     并将运行状态、工具调用进程、模型响应文本实时推回前端。
     """
+    import asyncio
+    from ..memory.service import SessionMemoryService
+
     agent_service = AgentService()
     await websocket.accept()
     logger.info("Web 客户端已成功建立 WebSocket 链接 (/ws/chat)")
 
+    # 优先从 URL 查询参数中获取 session_id
+    raw_session_id = websocket.query_params.get("session_id") or websocket.query_params.get("sessionId")
+    session_id = SessionMemoryService.get_or_create_session(raw_session_id)
+
     # NOTE: WebSocket 连接建立后立即启动 Agent 子进程，
-    # 将 init 帧（含真实模型名称）推送给前端，替代前端的硬编码默认值
+    # 将 init 帧（含真实模型名称）推送给前端，并注入 session_id
     init_result = await agent_service.start()
     if init_result:
+        init_result.session_id = session_id
         await websocket.send_json(
             init_result.model_dump(by_alias=True, exclude_none=True)
         )
@@ -39,6 +47,11 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
             user_content = data.get("content", "").strip()
             history = data.get("history")
 
+            # 若消息中包含新的 session_id 则更新
+            msg_session_id = data.get("session_id") or data.get("sessionId")
+            if msg_session_id:
+                session_id = SessionMemoryService.get_or_create_session(msg_session_id)
+
             if not user_content:
                 await websocket.send_json(
                     WebSocketMessage(
@@ -49,10 +62,17 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 continue
 
             history_len = len(history) if history else 0
-            logger.info("收到前端提问: '%s', 历史上下文消息数: %d", user_content, history_len)
+            logger.info("收到前端提问: '%s', 会话ID: %s, 历史上下文消息数: %d", user_content, session_id, history_len)
+
+            # 开启当前对话轮次并记录到 DB
+            request_id = await asyncio.to_thread(
+                SessionMemoryService.start_run, session_id, user_content
+            )
 
             # 2. 调度业务层服务，异步获取流式通信帧并推往前端
-            async for response_frame in agent_service.run_agent_turn(user_content, history):
+            async for response_frame in agent_service.run_agent_turn(
+                user_content, history, session_id=session_id, request_id=request_id
+            ):
                 await websocket.send_json(
                     response_frame.model_dump(by_alias=True, exclude_none=True)
                 )

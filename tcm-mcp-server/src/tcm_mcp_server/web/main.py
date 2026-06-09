@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.chat import router as chat_router
+from .api.session import router as session_router
+from .memory.db import init_db
 
 # 初始化日志配置
 logging.basicConfig(
@@ -30,8 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载聊天路由
+# 挂载聊天与会话管理路由
 app.include_router(chat_router)
+app.include_router(session_router)
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """系统启动，初始化 Session Memory 数据库。"""
+    init_db()
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:

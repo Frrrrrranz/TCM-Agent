@@ -30,7 +30,7 @@ class Database:
     def connect(self) -> None:
         """建立数据库连接并初始化表结构。"""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path))
+        self._conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         self._conn.row_factory = sqlite3.Row
         self._init_tables()
         logger.info("数据库已连接: %s", self.db_path)

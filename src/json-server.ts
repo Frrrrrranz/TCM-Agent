@@ -11,6 +11,7 @@ interface JsonInput {
   type: 'user_message'
   content: string
   history?: ChatMessage[]
+  history_context?: string
 }
 
 /**
@@ -56,17 +57,19 @@ export async function runJsonModeServer(args: {
         if (input.history && input.history.length > 0) {
           messages = [...input.history]
         } else {
-          // 如果内存历史的 system 缺失，则补全它
-          if (memoryMessages.length === 0 || memoryMessages[0].role !== 'system') {
-            memoryMessages.unshift({
-              role: 'system',
-              content: await buildSystemPrompt(args.cwd, args.permissions.getSummary(), {
-                skills: args.tools.getSkills(),
-                mcpServers: args.tools.getMcpServers(),
-              }),
-            })
-          }
           messages = [...memoryMessages]
+        }
+
+        // 动态构建包含当前跨对话历史摘要的 System Prompt 并注入
+        const systemPrompt = await buildSystemPrompt(args.cwd, args.permissions.getSummary(), {
+          skills: args.tools.getSkills(),
+          mcpServers: args.tools.getMcpServers(),
+          historyContext: input.history_context,
+        })
+        if (messages.length > 0 && messages[0].role === 'system') {
+          messages[0].content = systemPrompt
+        } else {
+          messages.unshift({ role: 'system', content: systemPrompt })
         }
 
         // 追加用户当前的消息

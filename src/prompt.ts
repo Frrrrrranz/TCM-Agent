@@ -8,6 +8,7 @@ export async function buildSystemPrompt(
   extras?: {
     skills?: SkillSummary[]
     mcpServers?: McpServerSummary[]
+    historyContext?: string
   },
 ): Promise<string> {
   const parts = [
@@ -92,6 +93,10 @@ export async function buildSystemPrompt(
   const memorySection = await loadMemory(cwd)
   if (memorySection) {
     parts.push(memorySection)
+  }
+
+  if (extras?.historyContext) {
+    parts.push(extras.historyContext)
   }
 
   return parts.join('\n\n')

@@ -15,3 +15,8 @@ __pycache__/
 
 # 进度记录：保留在仓库外层 d:/OneDrive/Desktop/dev/TCM-Agent/进度/，不上传 GitHub
 进度/
+
+# 本地数据导入与会话记录缓存
+tcm-mcp-server/data/memory.db
+tcm-mcp-server/data/review_queue/
+tcm-mcp-server/data/batch_import_summary.json

@@ -186,7 +186,9 @@ class AgentService:
     async def run_agent_turn(
         self,
         user_content: str,
-        history: list[dict[str, Any]] | None = None
+        history: list[dict[str, Any]] | None = None,
+        session_id: Optional[str] = None,
+        request_id: Optional[str] = None
     ) -> AsyncGenerator[WebSocketMessage, None]:
         """
         向长驻 Node.js 子进程发送单轮交互请求，流式读取结果。
@@ -205,6 +207,14 @@ class AgentService:
             )
             return
 
+        # 0. 载入 Session Memory 提取历史摘要
+        from ..memory.service import SessionMemoryService
+        history_context = ""
+        if session_id:
+            history_context = await asyncio.to_thread(
+                SessionMemoryService.build_history_context, session_id
+            )
+
         # 构建并发送交互负载到 stdin
         payload: dict[str, Any] = {
             "type": "user_message",
@@ -212,6 +222,8 @@ class AgentService:
         }
         if history:
             payload["history"] = history
+        if history_context:
+            payload["history_context"] = history_context
 
         input_data = json.dumps(payload, ensure_ascii=False) + "\n"
 
@@ -227,8 +239,11 @@ class AgentService:
             self._kill_process_sync()
             return
 
+        # 记录本轮数据以便落库
+        tool_invocations: list[dict[str, Any]] = []
+        assistant_content_accumulator: list[str] = []
+
         # 从 Queue 中流式读取输出行，通过线程池桥接到 asyncio
-        # NOTE: 不关闭 stdin，因为长驻模式需要保持管道开放以支持多轮对话
         loop = asyncio.get_event_loop()
         try:
             while True:
@@ -253,10 +268,50 @@ class AgentService:
                 try:
                     data = json.loads(line)
                     msg = WebSocketMessage(**data)
+                    
+                    # 动态灌入会话与请求标识，回传给前端
+                    msg.session_id = session_id
+                    msg.request_id = request_id
+                    
                     yield msg
+
+                    # 流式分析与记忆收集
+                    if msg.type == "tool_start":
+                        tool_invocations.append({
+                            "tool_name": msg.toolName,
+                            "input": msg.input,
+                            "output": None,
+                            "is_error": False
+                        })
+                    elif msg.type == "tool_result":
+                        for tool in reversed(tool_invocations):
+                            if tool["tool_name"] == msg.toolName and tool["output"] is None:
+                                tool["output"] = msg.output
+                                tool["is_error"] = msg.is_error or False
+                                if request_id:
+                                    await asyncio.to_thread(
+                                        SessionMemoryService.record_tool_invocation,
+                                        request_id,
+                                        msg.toolName,
+                                        tool["input"],
+                                        msg.output,
+                                        msg.is_error or False
+                                    )
+                                break
+                    elif msg.type == "assistant_message" and msg.content:
+                        assistant_content_accumulator.append(msg.content)
 
                     # turn_complete 标志着本轮对话结束，退出读取循环
                     if msg.type == "turn_complete":
+                        if request_id and session_id:
+                            assistant_content = "".join(assistant_content_accumulator)
+                            await asyncio.to_thread(
+                                SessionMemoryService.finish_run,
+                                request_id,
+                                session_id,
+                                assistant_content,
+                                tool_invocations
+                            )
                         break
                 except json.JSONDecodeError:
                     logger.warning("Node.js 打印了非 JSON 数据或错误日志: %s", line)
