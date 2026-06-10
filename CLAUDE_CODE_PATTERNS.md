@@ -1,191 +1,186 @@
-# What Claude Code Design Ideas You Can Learn Through MiniCode
+# 通过 MiniCode 你可以学习到 Claude Code 的哪些设计
 
 ## 1. Agent Loop
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code is centered on an agent loop:
+Claude Code 的主体是一个持续推进的 agent loop。系统围绕同一条主控制流运转：
 
-- receive user input
-- assemble context
-- call the model
-- decide whether tools are needed
-- execute tools
-- feed results back into the model
-- stop only when the current turn can actually end
+- 接收用户输入
+- 组织当前上下文
+- 请求模型
+- 根据模型输出决定是否调用工具
+- 执行工具
+- 把工具结果继续回传给模型
+- 在满足结束条件时结束当前回合
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode follows the same direction. The project is organized around a multi-step turn loop. The UI, tool layer, permissions, MCP, and skills are all shaped around that execution flow.
+MiniCode 的核心也是一个多步推进的回合循环。终端交互、工具系统、权限系统、MCP、skills 都围绕这条 loop 组织。
 
-## 2. Structured Message Model
+## 2. 结构化消息模型
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code does not treat the session as plain chat text. It distinguishes between different types of state in the conversation, such as:
+Claude Code 把会话中的不同状态拆成不同类型的消息或事件，用于区分：
 
-- user input
-- final assistant output
-- intermediate progress
-- tool calls
-- tool results
-- compaction boundaries or summaries
+- 用户输入
+- assistant 最终回答
+- 中间进度
+- 工具调用
+- 工具结果
+- 上下文压缩后的边界或摘要信息
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode also moved away from a plain transcript model. It now distinguishes between normal assistant output, progress, tool calls, tool results, and compacted context summaries.
+MiniCode 没有把 transcript 只当作字符串列表处理，而是引入了结构化消息角色。当前项目区分了普通 assistant、progress、tool call、tool result 以及 context summary。loop 判定、TUI 展示和上下文压缩建立在这些状态之上。
 
-## 3. Tool Use as a Protocol
+## 3. Tool Use 作为协议
 
-### Claude Code design
+### Claude Code 的设计方案
 
-In Claude Code, tool use is a protocol:
+Claude Code 里的工具调用是一套统一协议：
 
-- the model declares tool intent
-- the system validates tool input
-- permissions participate in the decision
-- tool execution returns normalized results
-- results are fed back into the next reasoning step
+- 模型声明工具调用
+- 系统解析工具输入
+- 权限系统参与判断
+- 工具执行后返回标准化结果
+- 结果再进入下一轮模型推理
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode uses the same structure. Tools are registered through one system, validated through schemas, executed through one entry point, and returned in a consistent format. Local tools and MCP-backed tools are both brought into the same execution model.
+MiniCode 采用了统一工具协议。工具有统一注册、统一 schema、统一执行入口和统一结果格式。本地工具与 MCP 动态接入的远端工具也被纳入同一层抽象。
 
-## 4. Progress and Final Are Different States
+## 4. Progress 与 Final 分离
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code separates “still working” from “finished.” A process update is not treated as a final answer just because it is natural-language text.
+Claude Code 把“正在执行中的说明”和“真正的最终回答”分开处理。系统不会因为模型输出了一段过程性文本，就直接判断当前回合结束。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode follows the same distinction. Intermediate execution text is treated as progress, rendered separately, and handled differently from final assistant output.
+MiniCode 也把中间态和最终态拆开了。progress 单独建模和渲染，不再一律落成最终 assistant 消息。回合结束条件也不再只依赖自然语言文本。
 
-## 5. Permissions Belong Inside the Execution Path
+## 5. 权限与审批属于执行路径本身
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code treats permissions as part of the execution model itself. Risky operations such as command execution or file modification sit behind approval and review boundaries that are part of the system’s normal control flow.
+Claude Code 的权限系统属于执行路径的一部分。命令执行、文件修改等高风险行为都处于统一的审批和安全边界之内。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode follows the same architectural choice. Command approval, review before writes, per-turn permission memory, and rejection feedback are all inside the turn loop.
+MiniCode 也采用了相同的架构选择。命令执行前审批、文件修改前 review、单回合允许记忆、拒绝后给模型反馈，都纳入主回合执行过程。
 
-## 6. MCP as Dynamic Capability Injection
+## 6. MCP 作为动态能力接入层
 
-### Claude Code design
+### Claude Code 的设计方案
 
-The important idea behind MCP is that external servers can dynamically expose capabilities into the current agent session.
+Claude Code 对 MCP 的设计重点是动态接入外部 server 暴露的能力。MCP 在这里承担能力发现、能力挂载和统一接入的角色。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode takes the same approach. It reads MCP configuration, connects to external servers, discovers remote tools, and mounts them into the local tool surface. Resources and prompts are also exposed through a shared helper layer.
+MiniCode 沿用了这个方向。项目在启动或运行时读取 MCP 配置，连接远端 server，发现其暴露的 tools，并统一挂载到本地工具表中。除了 tools 之外，resources 和 prompts 也通过统一 helper tools 暴露。
 
-## 7. Skills as Lightweight Workflow Extension
+## 7. Skills 作为轻量工作流扩展
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code skills act more like lightweight workflow extensions:
+Claude Code 的 skills 更像工作流扩展，而不是重型插件系统。重点在于：
 
-- task-specific instructions
-- domain-specific execution constraints
-- reusable working patterns that can be loaded when needed
+- 用较轻的形式提供任务说明
+- 允许系统在需要时加载特定工作流
+- 让扩展可以直接参与模型执行过程
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode applies the same idea in a smaller form. Local `SKILL.md` files can be discovered and loaded into the execution flow, allowing the model to adopt a more specific workflow.
+MiniCode 在 skills 上采用了同样的轻量思路。项目通过本地 `SKILL.md` 发现和加载技能，把它们作为 prompt 和任务执行的一部分。
 
-## 8. Automatic Context Compaction
+## 8. 自动上下文压缩
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code does not treat long-context management as simple deletion. Older context is compressed into a form that still supports continued work, while newer context remains available in higher fidelity. Context decisions also need to be tied to the real model budget instead of a vague sense that the conversation "feels long."
+Claude Code 的上下文压缩不是简单删除旧消息，而是把较早上下文转化为可继续工作的摘要，同时保留新的上下文片段。上下文管理也不应该只凭“感觉对话变长了”来触发，而应该尽量贴近真实模型预算。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode follows the same direction. When conversation state becomes too large, earlier messages can be summarized into a `context_summary`, and the recent tail is preserved. Two complementary auto-compact strategies are available: **snip compact** (deterministic middle-history removal that protects file edits and errors) and **context collapse** (projection-layer summarization of conversation spans). Auto-compact is driven by structured context stats rather than a blind message count.
+MiniCode 也采用了这个方向。项目会在长会话中自动检查上下文规模，在达到阈值时使用两种互补策略：**裁剪压缩**（snip compact：确定性移除中段历史，保护文件编辑和出错轮次）和**上下文折叠**（context collapse：投影层摘要对话片段）。自动压缩的触发来自结构化 context stats，而不是简单消息数量。
 
-## 9. Provider Usage as Context Truth
+## 9. Provider Usage 作为上下文事实来源
 
-### Claude Code design
+### Claude Code 的设计方案
 
-A production coding agent should not rely only on local token guesses when the provider can return usage metadata. Provider usage is the closest available truth for current context size, while local estimation is still useful as a fallback or for messages added after the latest provider boundary.
+一个产品级 coding agent 不应该只依赖本地 token 猜测。如果 provider 返回 usage metadata，那么它就是当前上下文大小最接近事实的数据来源；本地估算仍然有价值，但更适合作为 provider 不返回 usage 时的 fallback，或用于最新 provider boundary 之后追加消息的 tail estimate。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode records provider usage on assistant response boundaries and uses it as the primary source for context accounting. If new messages are appended after that boundary, MiniCode adds an estimated tail and marks the source accordingly, for example `usage+est`. If usage becomes stale after compaction, it is explicitly marked stale so old provider totals are not reused as current context truth.
+MiniCode 会把 provider usage 记录在 assistant response boundary 上，并把它作为上下文记账的主要来源。如果 boundary 之后又追加了新消息，MiniCode 会补上本地 tail estimate，并标记来源，例如 `usage+est`。如果压缩后旧 usage 已经不再代表当前上下文，MiniCode 会把它标记为 stale，避免继续误用旧 response usage。
 
-This makes the TUI context badge, warning levels, blocking levels, and auto-compact trigger all depend on the same accounting result.
+这样 TUI context badge、warning/blocking 级别和 auto-compact 触发，都基于同一份 accounting result。
 
-## 10. Session Events, Resume, and Forking
+## 10. 会话事件、恢复与分叉
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Long-running coding agents need more than an in-memory chat buffer. They need a durable session model that can survive process exits, support resuming work, and preserve enough structure to understand how the conversation evolved.
+长时间运行的 coding agent 不能只靠内存里的 chat buffer。它需要一个可持久化的 session model，能够跨进程退出恢复工作，也要保留足够结构，帮助系统理解对话是如何演进的。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode stores sessions per working directory as append-only JSONL events. Each event has metadata such as session ID, timestamp, cwd, and parent linkage. The runtime can resume a session, rename it, start a fresh one, fork an existing session into an independent branch, and clean up expired sessions.
+MiniCode 按工作目录把会话保存为追加写入的 JSONL events。每个事件都带有 session ID、timestamp、cwd 和 parent linkage 等元信息。运行时可以恢复会话、重命名会话、开启新会话、把已有会话分叉为独立副本，并清理过期会话。
 
-Compact boundaries are also stored as events. When a session is resumed, MiniCode can load from the latest compact boundary while still keeping the full transcript reconstructable from the event log.
+compact boundary 也会作为事件写入。恢复会话时，MiniCode 可以从最近的 compact boundary 之后加载消息，同时仍然可以从完整事件日志重建 transcript。
 
-## 11. Large Tool Results Should Leave the Prompt
+## 11. 大工具结果应当离开 Prompt
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Tool results can be much larger than the useful signal they contain. A coding agent has to protect the model context from being dominated by huge command output, generated files, logs, or search results. The important design idea is to separate "available to the system" from "fully inserted into the prompt."
+工具结果可能远大于其中真正有用的信息。coding agent 需要保护模型上下文，避免超大命令输出、日志、生成文件或搜索结果占满 prompt。这里的关键设计是区分“系统仍可访问完整数据”和“完整数据直接塞进 prompt”。
 
-### What MiniCode makes visible
+### 通过 MiniCode 可以看到的对应实现
 
-MiniCode persists oversized tool results under its local data directory and replaces the model-visible content with a short preview plus the full-output file path. Single huge results and oversized batches are reduced before they enter the next model step.
+MiniCode 会把超大的 tool result 持久化到本地数据目录，并在模型可见上下文里替换成短预览和完整输出路径。单个超大结果和过大的工具结果批次，都会在进入下一次模型请求前被压缩到更小的可见内容。
 
-That keeps the full data available for inspection while preventing tool output from crowding out the conversation, recent edits, and task intent.
+这样完整数据仍然可以被检查，但不会挤占对话历史、最近修改和任务意图这些更重要的上下文。
 
-## 12. TUI as a State-Machine View
+## 12. TUI 作为状态机的可视化层
 
-### Claude Code design
+### Claude Code 的设计方案
 
-Claude Code’s terminal UI acts as a visualization of internal system state:
+Claude Code 的终端界面不是单纯输出文本，而是在展示内部状态机。工具运行、完成、失败，进度消息、最终消息、审批状态等都属于不同状态的可视化呈现。
 
-- tool running vs success vs failure
-- progress vs final response
-- approval pending vs normal execution
-- compacted or summarized output where appropriate
+### 通过 MiniCode 可以看到的对应实现
 
-### What MiniCode makes visible
+MiniCode 的 TUI 也采用这个方向。当前终端界面不仅显示最终回答，还会显示工具运行状态、progress 消息、审批状态以及折叠后的工具结果摘要。
 
-MiniCode’s TUI follows the same direction. It renders running tool states, progress messages, approval states, and collapsed tool summaries.
+## 13. 前台工具执行与后台 Shell Task 分离
 
-## 13. Foreground Tool Execution and Background Shell Tasks Are Different
+### Claude Code 的设计方案
 
-### Claude Code design
+Claude Code 不会把所有命令都当作同一种同步工具调用处理。对于会持续运行、可以脱离当前回合继续存在的 shell 命令，系统会把它们建模成独立 task，而不是继续伪装成一个尚未返回的普通工具调用。
 
-Claude Code does not treat every command as the same kind of synchronous tool call. Long-running shell commands that can outlive the current turn are modeled as separate tasks rather than being left hanging as ordinary unfinished tool executions.
+### 通过 MiniCode 可以看到的对应实现
 
-### What MiniCode makes visible
+MiniCode 现在也开始采用这个方向。对于明确后台化的 shell命令，系统不再把它们继续记成普通 `run_command` 的同步执行，而是注册成最小版 background shell task，由 TUI 单独展示状态。这一层不是完整复刻 Claude Code 的任务系统，但已经体现出“前台工具执行”和“后台 shell task”应当分开建模的思路。
 
-MiniCode now follows that direction in a lightweight form. Explicitly backgrounded shell commands are no longer treated as ordinary synchronous `run_command` executions. They are registered as minimal background shell tasks and surfaced separately in the TUI. This is not a full clone of Claude Code’s task system, but it does preserve the design idea that foreground tool execution and background shell tasks should be modeled differently.
+## 14. 借鉴与轻量化的边界
 
-## 14. Boundary Between Borrowing and Simplification
+### Claude Code 的设计方案
 
-### Claude Code design
+Claude Code 是完整产品级系统，很多设计建立在更大的状态管理、上下文管理和交互体系之上。
 
-Claude Code is a full product-scale system. Many of its design choices sit on top of larger state management, context handling, and interaction layers.
+### 通过 MiniCode 可以看到的对应实现
 
-### What MiniCode makes visible
+MiniCode 保留的是核心设计方案，而不是完整搬运所有实现细节。项目当前保留的是：
 
-MiniCode keeps the structural ideas rather than the full production footprint. What it keeps are the parts that shape the system most strongly:
+- loop-first 的主结构
+- 结构化消息
+- 统一工具协议
+- 审批嵌入执行路径
+- MCP 动态接入
+- skills 工作流扩展
+- usage-aware 的上下文记账与自动压缩
+- 持久化会话、恢复与分叉
+- 大工具结果移出 prompt context
+- 状态化 TUI
+- 前台工具与后台 shell task 分离
 
-- loop-first architecture
-- structured message handling
-- unified tool protocol
-- permission-aware execution
-- MCP as dynamic extension
-- skills as workflow extension
-- usage-aware context accounting and automatic compaction
-- durable sessions, resume, and fork
-- large tool-result storage outside the prompt
-- state-oriented terminal UI
-- a distinction between foreground tool execution and background shell tasks
-
-MiniCode is better understood as a small Claude Code-style reference implementation rather than as a full clone.
+它对应的是一个小体量的 Claude Code 风格参考实现，而不是完整复刻版本。

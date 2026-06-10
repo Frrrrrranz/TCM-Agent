@@ -1,156 +1,156 @@
-# MiniCode Roadmap
+# MiniCode 路线图
 
-MiniCode already has a usable lightweight terminal coding workflow, but there is still a visible gap between the current `main` branch and a more complete Claude Code-like runtime.
+MiniCode 当前已经具备一个可用的轻量终端 coding workflow，但和一个更完整的类 Claude Code runtime 相比，`main` 分支仍然存在一些明显缺口。
 
-This roadmap highlights the most valuable missing capabilities and the order in which they should ideally be improved.
+这份路线图用于整理最有价值的缺失能力，以及它们更适合推进的优先级顺序。
 
-Pull requests are welcome, especially when they align with the contribution guidelines and keep the project lightweight.
+也欢迎围绕这些方向提交 PR，前提是遵守贡献规范，并尽量保持项目轻量。
 
 ## P0
 
-### 1. Model-aware context management
+### 1. 模型感知的上下文管理
 
-**Status: largely implemented; context collapse and snip compact now provide two complementary auto-compact strategies. Follow-up polish may include finer-grained collapse triggers and heuristics.**
+**状态：主体已实现；上下文折叠和裁剪压缩现已提供两种互补的自动压缩策略。后续 polish 可以包括更细粒度的折叠触发器和启发式规则。**
 
-This is the most important missing runtime capability.
+这是当前最重要的运行时缺口。
 
-It includes:
+包括：
 
-- model-aware context window configuration
-- provider-reported usage accounting as the primary token source
-- context usage display in the TUI, including whether the value is provider usage, usage plus estimated tail, or estimate-only fallback
-- automatic context compaction for long conversations, triggered from structured accounting totals instead of a bare local estimate
-- large tool-result replacement, where oversized outputs are persisted to disk and only a preview/path remains in the model-visible context
+- 模型感知的 `context window` 配置
+- 以供应商返回 usage 为主要来源的 token 记账
+- TUI 中的上下文占用显示，并区分 provider usage、usage + estimated tail、estimate-only fallback
+- 长会话中的自动上下文压缩，触发依据来自结构化 accounting total，而不是裸本地估算值
+- 大工具结果替换：超大输出会持久化到磁盘，模型可见上下文里只保留预览和完整路径
 
-MiniCode now records provider usage on assistant response boundaries and computes context stats from a structured accounting result. The local estimator remains available for providers that do not return usage, offline tests, and tail messages appended after the latest provider usage boundary. Compaction marks retained pre-compact usage stale so the next context calculation does not treat an old response's usage as the current conversation total. Oversized tool outputs are written to the local MiniCode data directory and replaced with stable preview messages, so long command output no longer dominates context accounting.
+MiniCode 现在会把 provider usage 记录在 assistant response boundary 上，并用结构化 accounting result 计算 context stats。本地 estimator 仍保留给不返回 usage 的 provider、离线测试，以及最新 provider usage boundary 之后追加的 tail messages。压缩会话时，保留下来的压缩前 usage 会被标记为 stale，避免后续把旧 response usage 当作当前上下文真实值。超大工具输出会写入 MiniCode 本地数据目录，并替换成稳定的预览消息，避免长命令输出主导上下文记账。
 
-Two compaction strategies are now available:
+现已提供两种压缩策略：
 
-- **Snip compact** (deterministic): safely removes middle-history messages while protecting file-editing operations and error turns, keeping recent conversation intact. Triggered when context utilization exceeds the snip threshold.
-- **Context collapse** (projection layer): identifies summarizable spans of conversation and replaces them with model-generated summaries. Works as a complementary strategy when snip compact alone is insufficient or when deeper history compression is needed.
+- **裁剪压缩（Snip compact，确定性）**：安全地移除中段历史消息，同时保护文件编辑操作和出错轮次，保留近期对话完整。在上下文利用率超过裁剪阈值时触发。
+- **上下文折叠（Context collapse，投影层）**：识别可摘要的对话片段，并用模型生成的摘要替换。作为裁剪压缩的互补策略，在裁剪压缩不足或需要更深层历史压缩时使用。
 
-This work matters because long-session stability depends on it. It is also one of the most important design areas where MiniCode still trails a more complete Claude Code-style runtime.
+这部分直接决定长会话是否稳定，也是 MiniCode 当前和更完整 Claude Code 风格 runtime 差距最大的部分之一。
 
-### 2. API retry and backoff
+### 2. API retry 与 backoff
 
-**Status: implemented.** The main Anthropic adapter retries on 429 and 5xx with exponential backoff and honors `Retry-After` when present. The companion [Python](./external/MiniCode-Python/) and [Rust](./external/MiniCode-rs/) ports follow the same behavior.
+**状态：已实现。** 主仓库 Anthropic 适配层已对 429、5xx 做有限次重试，采用指数退避并在可用时尊重 `Retry-After`；伴生的 Python 与 Rust 实现与上述行为对齐。
 
-Possible follow-ups include a more uniform configurable retry policy, richer observability, or applying the same policy consistently across additional provider code paths.
+若后续要增强，可考虑统一可配置的重试策略、更细粒度的可观测性，或在其他 provider 路径上复用同一套策略。
 
-### 3. Session persistence and resume
+### 3. 会话持久化与恢复
 
-**Status: implemented.** Sessions are saved per working directory in `~/.mini-code/projects/` using append-only JSONL with parentUuid tree structure. Includes `/resume`, `/rename`, `/new`, `/fork`, `/compact` commands, interactive session picker with delete support, `--resume`/`--fork` CLI flags, and automatic 30-day expiry cleanup.
+**状态：已实现。** 会话按工作目录隔离存储在 `~/.mini-code/projects/`，采用追加写入的 JSONL 格式，支持 parentUuid 树结构。包括 `/resume`、`/rename`、`/new`、`/fork`、`/compact` 命令，交互式会话选择器（支持删除），`--resume`/`--fork` CLI 参数，以及 30 天自动过期清理。
 
-### 4. Multi-language implementation branches
+### 4. 多语言实现分支
 
-**Status: Python and Rust companion implementations are available; Go remains exploratory.**
+**状态：Python 与 Rust 伴生实现已就绪；Go 仍为探索方向。**
 
-Another important direction is to explore parallel implementations of MiniCode in other languages, especially:
+另一个重要方向，是探索 MiniCode 的多语言实现版本，尤其包括：
 
-- Python (companion repo available)
-- Go (no formal companion implementation yet)
-- Rust (companion repo available)
+- Python（已有伴生仓库）
+- Go（尚未有正式伴生实现）
+- Rust（已有伴生仓库）
 
-This is particularly valuable for the learning side of the project.
+这对项目的“学习价值”很重要。
 
-The goal is not to fragment the main codebase immediately. The goal is to encourage language-specific branches or companion implementations that preserve the same core ideas:
+目标并不是立刻把主代码库拆散，而是鼓励围绕同一套核心思路，逐步发展语言对应的分支或伴生实现：
 
-- lightweight architecture
-- Claude Code-aligned design direction
-- readable agent loop and tool model
-- educational value for contributors studying different ecosystems
+- 保持轻量架构
+- 与 Claude Code 的设计方向保持趋同
+- 保持 agent loop 和 tool model 的可读性
+- 让不同语言生态中的学习者也能从中受益
 
-If you are interested in maintaining or extending the Python or Rust variants, or starting a Go direction, contributions and direct collaboration are welcome.
+如果你对维护或扩展 Python、Rust 版本，或启动 Go 方向，也非常欢迎直接联系并参与贡献。
 
 ## P1
 
-### 5. Layered memory loading
+### 5. 分层 memory 加载
 
-**Status: implemented.** MiniCode now loads instruction files from a three-layer hierarchy: user global (`~/.mini-code/MINI.md`), project root, and nested directories (walked upward from cwd). Supports `MINI.md`, `MINI.local.md`, `.mini-code/MINI.md`, `.mini-code/rules/*.md`, plus compatibility scanning for `CLAUDE.md` and `.claude/CLAUDE.md`. Includes content deduplication, `@path` include resolution, `/memory` inspection, and capacity limits.
+**状态：已实现。** MiniCode 现在从三层层级加载指令文件：用户全局（`~/.mini-code/MINI.md`）、项目根、嵌套目录（从 cwd 向上递归）。支持 `MINI.md`、`MINI.local.md`、`.mini-code/MINI.md`、`.mini-code/rules/*.md`，并兼容扫描 `CLAUDE.md` 和 `.claude/CLAUDE.md`。包含内容去重、`@path` include 解析、`/memory` 检查命令和容量限制。
 
-The `/init` command bootstraps a project: creates `.mini-code/`, adds MiniCode entries to `.gitignore`, and generates a `MINI.md` template with auto-detected stack (languages, frameworks, verification commands, repository shape). Idempotent — safe to re-run.
+`/init` 命令可初始化项目：创建 `.mini-code/`、向 `.gitignore` 追加 MiniCode 条目、根据项目检测生成 `MINI.md` 模板（语言、框架、验证命令、目录结构）。幂等 — 可安全重复运行。
 
-Planned follow-ups:
+后续计划：
 
 - auto memory read/write
 
-### 6. Stronger provider abstraction
+### 6. 更完整的 provider abstraction
 
-MiniCode currently works well with Anthropic-style APIs and some compatible providers, but the provider model can be made more explicit and complete.
+MiniCode 当前已经能接 Anthropic 风格接口和部分兼容供应商，但 provider 模型还可以更明确、更完整。
 
-Target direction:
+目标方向：
 
 - Anthropic
 - OpenAI-compatible endpoints
 - OpenRouter
 - LiteLLM-style gateways
 
-### 7. Todo or task tracking support
+### 7. Todo / task tracking
 
-A lightweight built-in task tracker would improve long multi-step execution.
+一个轻量内置任务跟踪工具会明显提升多步执行体验。
 
-This should stay simple and should not become a heavyweight planning subsystem.
+但它应该保持轻量，不要演变成很重的 planning subsystem。
 
-### 8. `.claude/agents` and sub-agent support
+### 8. `.claude/agents` 与 sub-agent 支持
 
-This is an important capability, but it also adds complexity.
+这是一个重要能力，但复杂度也会明显上升。
 
-It is worth doing after the core runtime is more stable.
+更适合在核心 runtime 更稳定之后推进。
 
-### 9. Expand the core toolset selectively
+### 9. 有选择地扩充核心工具集
 
-MiniCode does not need to chase Claude Code's full tool count mechanically, but it does need to expand beyond the current minimal set over time.
+MiniCode 不需要机械追求和 Claude Code 一样的工具数量，但随着项目演进，当前这套最小工具集确实需要继续扩充。
 
-The direction here should be:
+这里更合适的方向是：
 
-- add tools that support core runtime capabilities
-- prefer Claude Code-aligned tool patterns over unrelated inventions
-- keep the built-in set small and high-value
-- continue to rely on MCP for many external or optional capabilities
+- 优先补足支撑核心 runtime 能力的工具
+- 优先借鉴与 Claude Code 趋同的工具模式，而不是发明完全无关的新工具体系
+- 保持内置工具集“小而硬”
+- 继续把很多外部或可选能力交给 MCP 承担
 
-Priority should go to missing core tool categories such as:
+优先考虑的工具类别包括：
 
-- session and memory related capabilities
-- context management related capabilities
-- lightweight task tracking
-- a few high-value built-in tools where MCP is not a sufficient substitute
+- session / memory 相关能力
+- context management 相关能力
+- 轻量任务跟踪能力
+- 少量 MCP 无法很好替代的高价值内置工具
 
-The goal is not tool-count parity. The goal is a stronger core toolset while preserving MiniCode's lightweight identity.
+目标不是和 Claude Code 做工具数量对齐，而是在保持 MiniCode 轻量定位的前提下，逐步补强核心工具能力。
 
 ## P2
 
-### 10. Notebook editing support
+### 10. Notebook 编辑支持
 
-Useful, but not essential for the main terminal coding workflow.
+有价值，但不是当前 terminal coding workflow 的最核心缺口。
 
-### 11. Built-in web tools
+### 11. 内置 web 工具
 
-MiniCode can already extend itself through MCP, so built-in `WebFetch` / `WebSearch` are useful but not the most urgent gap.
+MiniCode 现在已经可以通过 MCP 自我扩展，所以内置 `WebFetch` / `WebSearch` 有帮助，但不是最紧急的能力缺口。
 
-### 12. Evaluation and trace infrastructure
+### 12. 评测与 trace 基建
 
-This includes:
+包括：
 
-- benchmark harnesses
-- structured trace capture
-- reproducible agent evaluation
+- benchmark harness
+- 结构化 trace 捕获
+- 可复现 agent evaluation
 
-This is valuable for research and comparison, but it is not on the critical path for the main product loop.
+这对研究和比较非常有价值，但不属于主产品闭环的第一优先级。
 
 ### 13. Prompt caching
 
-Worth exploring later, especially once context accounting and provider integration are more mature.
+值得后续探索，尤其是在 context accounting 和 provider integration 更成熟之后。
 
-## Contribution Notes
+## 贡献说明
 
-If you want to contribute in these areas:
+如果你希望围绕这些方向提交 PR，请尽量：
 
-- prefer focused PRs
-- keep the implementation lightweight
-- align the design with Claude Code's direction where possible
-- explain how the change was validated
+- 优先做聚焦型 PR
+- 保持实现轻量
+- 尽量与 Claude Code 的设计方向保持一致
+- 在 PR 中说明验证方式
 
-See:
+参见：
 
+- [中文贡献规范](./CONTRIBUTING.md)
 - [Contribution Guidelines](./CONTRIBUTING.md)
-- [中文贡献规范](./CONTRIBUTING_ZH.md)

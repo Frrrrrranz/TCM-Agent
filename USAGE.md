@@ -1,39 +1,39 @@
-# MiniCode Usage Guide
+# MiniCode 详细使用指南
 
-[Back to README](./README.md) | [简体中文](./USAGE_ZH.md)
+[返回主 README](./README.md)
 
-This document carries the manual-style content that used to live in the main README: full commands, long-session behavior, configuration, Skills/MCP usage, project layout, and code size. The README now stays focused on the project entry point and high-level overview.
+这份文档承接原 README 中偏操作手册的内容：完整命令、长会话、配置、Skills/MCP、项目结构和代码规模。主 README 现在只保留项目入口和核心介绍。
 
-## Table of Contents
+## 目录
 
-- [Feature Details](#feature-details)
-- [Installation Details](#installation-details)
-- [Quick Start](#quick-start)
-- [Commands](#commands)
-- [Layered Memory and Project Initialization](#layered-memory-and-project-initialization)
-- [Long Sessions and Context Management](#long-sessions-and-context-management)
-- [Configuration](#configuration)
-- [Skills and MCP Usage](#skills-and-mcp-usage)
-- [Product Showcase Page](#product-showcase-page)
-- [Project Structure](#project-structure)
-- [Code Size](#code-size)
-- [Development](#development)
+- [功能细节](#功能细节)
+- [安装细节](#安装细节)
+- [快速开始](#快速开始)
+- [命令](#命令)
+- [分层 Memory 与项目初始化](#分层-memory-与项目初始化)
+- [长会话与上下文管理](#长会话与上下文管理)
+- [配置](#配置)
+- [Skills 与 MCP 用法](#skills-与-mcp-用法)
+- [产品介绍展示页](#产品介绍展示页)
+- [项目结构](#项目结构)
+- [代码规模](#代码规模)
+- [开发说明](#开发说明)
 
-## Feature Details
+## 功能细节
 
-### Core workflow
+### 核心工作流
 
-- multi-step tool execution in a single turn
-- `model -> tool -> model` loop
-- full-screen terminal interface
-- input history, transcript scrolling, and slash command menu
-- per-project session persistence with resume, rename, fork, and compact commands
-- model-aware context stats with provider usage, estimated tail tokens, auto-compact, context collapse, and snip compact
-- discoverable local skills via `SKILL.md`
-- dynamic MCP tool loading over stdio
-- MCP resources and prompts via generic MCP helper tools
+- 单轮支持多步工具执行
+- `model -> tool -> model` 闭环
+- 全屏终端交互界面
+- 输入历史、transcript 滚动和 slash 命令菜单
+- 按项目隔离的会话持久化，支持恢复、重命名、分叉和压缩
+- 模型感知的上下文统计，支持 provider usage、tail estimate、自动压缩、上下文折叠和裁剪压缩
+- 支持通过 `SKILL.md` 发现本地 skills
+- 支持通过 stdio 动态加载 MCP tools
+- 支持通过通用 MCP helper tools 访问 resources 和 prompts
 
-### Built-in tools
+### 内置工具
 
 - `list_files`
 - `grep_files`
@@ -52,38 +52,37 @@ This document carries the manual-style content that used to live in the main REA
 - `list_mcp_prompts`
 - `get_mcp_prompt`
 
-### Safety and usability
+### 安全性与可用性
 
-- review-before-write flow for file modifications
-- path and command permission checks
-- local installer with independent config storage
-- support for Anthropic-style API endpoints
-- oversized tool results are stored on disk with a short in-context preview, keeping long command output from crowding out useful conversation context
+- 文件修改前先 review diff
+- 路径和命令权限检查
+- 独立配置目录和交互式安装器
+- 支持 Anthropic 风格接口
+- 超大工具结果会落盘保存，并在上下文里替换成短预览和文件路径，避免长命令输出挤占有效对话空间
 
-### Recent interaction upgrades
+### 最近交互改进
 
-- approval prompts now use Up/Down selection with Enter confirm
-- approval prompts also support direct letter/number shortcuts shown in each option
-- supports "reject with guidance" to send corrective instructions back to the model
-- edit approvals support "allow this file for this turn" and "allow all edits for this turn"
-- file review now uses standard unified diff output (closer to `git diff`)
-- approval view supports `Ctrl+O` expand/collapse plus wheel/page scrolling
-- `Ctrl+C` now exits cleanly even when an approval prompt is open
-- finished tool calls auto-collapse into concise summaries to reduce transcript noise
-- explicit background shell commands launched through `run_command` are now surfaced as lightweight shell tasks instead of remaining stuck as a forever-running tool call
-- TTY input handling is serialized, and CRLF Enter sequences are normalized so approval confirms do not accidentally fire twice
-- fixed an input-event deadlock where approval prompts could stop accepting Up/Down/Enter
-- escape-sequence parsing is hardened so malformed terminal input does not stall key handling
-- `run_command` now accepts single-string invocations like `"git status"` and auto-splits args
-- clarifying questions are now structured via `ask_user`, and the turn pauses until the user replies
-- context accounting is now provider-usage-driven: provider-reported usage anchors the context stats, auto-compact trigger, blocking/warning levels, and TUI context badge; the local estimator is used only when provider usage is unavailable or for messages added after the latest usage boundary
-- the TUI context badge distinguishes exact provider usage from estimated tail text, for example `ctx 82% ... usage+est`; compacted conversations mark retained pre-compact usage stale so it is not reused as current context truth
-- large tool results are persisted under MiniCode's local data directory and replaced in the model context by a preview plus file path; repeated passes reuse the same replacement so accounting stays stable
-- deterministic snip compact removes safe middle-history messages while protecting file-editing and error turns, keeping recent conversation intact
-- context collapse projection layer identifies summarizable spans in long conversations and replaces them with concise summaries to stay within context limits
-- Anthropic thinking blocks are now preserved across tool-call turns, maintaining chain-of-thought continuity through multi-step tool execution
+- 审批对话支持上下键选择与 Enter 确认，也支持选项上的字母/数字快捷键
+- 支持“拒绝并给模型反馈”，可直接把修正建议发回模型
+- 编辑审批支持“本轮允许此文件”与“本轮允许全部编辑”
+- diff 预览改为标准 unified diff（更接近 `git diff`）
+- 审批页面支持 `Ctrl+O` 展开/收起与滚轮/分页滚动
+- 审批弹窗打开时也支持 `Ctrl+C` 干净退出
+- 工具调用结果自动折叠为摘要，减少 transcript 噪音
+- 通过 `run_command` 启动的显式后台 shell 命令，现在会以轻量 shell task 的形式呈现，不再卡成一个永远 running 的普通工具调用
+- TTY 输入事件现在串行处理，并且会把 CRLF 的 Enter 合并成一次确认，避免审批弹窗被重复触发
+- 修复了审批阶段可能导致上下键/Enter 无响应的输入事件死锁问题
+- 加固 ESC 序列解析，异常终端输入不会再卡住按键处理
+- `run_command` 支持 `"git status"` 这类单字符串命令输入，并自动拆分参数
+- 澄清问题改为通过 `ask_user` 结构化发问，并在用户回复前暂停当前回合
+- 上下文 token 记账已改为 provider usage 驱动：供应商返回的 usage 会作为 context stats、自动压缩触发、warning/blocking 级别和 TUI context badge 的主要来源；本地估算器只在 provider 未返回 usage 或最新 usage boundary 之后存在新增消息时作为 fallback/tail estimate
+- TUI context badge 会区分真实 usage 和估算 tail，例如 `ctx 82% ... usage+est`；压缩后的会话会把保留下来的旧 usage 标记为 stale，避免把压缩前的 usage 当作当前上下文真实值
+- 大工具结果会持久化到 MiniCode 的本地数据目录，并在模型上下文里替换为预览和文件路径；同一个结果的重复处理会复用替换内容，让 token accounting 保持稳定
+- 确定性裁剪压缩（snip compact）会安全地移除中段历史消息，同时保护文件编辑和出错轮次，保留近期对话完整
+- 上下文折叠（context collapse）投影层能识别长对话中可摘要的片段，替换为简洁摘要以保持在 context window 限制内
+- Anthropic thinking block 现在会在跨工具调用轮次间保留，确保多步工具执行过程中思维链的连续性
 
-## Installation Details
+## 安装细节
 
 ```bash
 cd mini-code
@@ -91,64 +90,64 @@ npm install
 npm run install-local
 ```
 
-The installer will ask for:
+安装器会询问：
 
-- model name
+- 模型名称
 - `ANTHROPIC_BASE_URL`
 - `ANTHROPIC_AUTH_TOKEN`
 
-Configuration is stored in:
+配置保存在：
 
 - `~/.mini-code/settings.json`
 - `~/.mini-code/mcp.json`
 
-You can override the config directory with `MINI_CODE_HOME`:
+你可以通过 `MINI_CODE_HOME` 自定义配置目录：
 
 ```bash
 export MINI_CODE_HOME=/path/to/custom/dir
 npm run install-local
 ```
 
-The launcher is installed to:
+启动命令安装到：
 
 - `~/.local/bin/minicode`
 
-You can override the launcher directory with `MINI_CODE_BIN_DIR`:
+你可以通过 `MINI_CODE_BIN_DIR` 自定义启动器目录：
 
 ```bash
 export MINI_CODE_BIN_DIR=/path/to/custom/bin
 npm run install-local
 ```
 
-If `~/.local/bin` is not already on your `PATH`, add:
+如果 `~/.local/bin` 不在你的 `PATH` 中，可以添加：
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-## Quick Start
+## 快速开始
 
-Run the installed launcher:
+运行安装后的命令：
 
 ```bash
 minicode
 ```
 
-Run in development mode:
+本地开发模式：
 
 ```bash
 npm run dev
 ```
 
-Run in offline demo mode:
+离线演示模式：
 
 ```bash
 MINI_CODE_MODEL_MODE=mock npm run dev
 ```
 
-## Commands
+## 命令
 
-### Management commands
+### 管理命令
 
 - `minicode mcp list`
 - `minicode mcp add <name> [--project] [--protocol <mode>] [--url <endpoint>] [--header KEY=VALUE ...] [--env KEY=VALUE ...] [-- <command> [args...]]`
@@ -159,7 +158,7 @@ MINI_CODE_MODEL_MODE=mock npm run dev
 - `minicode skills add <path> [--name <name>] [--project]`
 - `minicode skills remove <name> [--project]`
 
-### Local slash commands
+### 本地 slash 命令
 
 - `/help`
 - `/tools`
@@ -172,77 +171,77 @@ MINI_CODE_MODEL_MODE=mock npm run dev
 - `/model <name>`
 - `/config-paths`
 
-### Terminal interaction
+### 终端交互能力
 
-- command suggestions and slash menu
-- transcript scrolling
-- prompt editing
-- input history navigation
-- approval selection and feedback input flow (Up/Down + Enter, or key shortcuts)
+- 命令提示与 slash 菜单
+- transcript 滚动
+- 输入编辑
+- 历史输入导航
+- 审批界面上下键选择与反馈输入（也支持快捷键直接选择）
 
-### Session management
+### 会话管理
 
-MiniCode automatically saves your conversation after each turn. Each launch creates a new session with a unique ID.
+MiniCode 每轮对话后自动保存。每次启动会创建新的会话，分配唯一 ID。
 
-- `/resume`: open interactive session picker
-- `/resume <id>`: resume a specific session by ID
-- `/rename <name>`: rename the current session
-- `/new`: start a fresh session (previous session is preserved)
-- `/fork`: fork the current session into a new independent copy
-- `/compact`: compress context to free up context window space
+- `/resume`：打开会话选择器
+- `/resume <id>`：恢复指定会话
+- `/rename <name>`：重命名当前会话
+- `/new`：开始新会话（旧会话保留）
+- `/fork`：将当前会话分叉为独立副本
+- `/compact`：压缩上下文，释放 context window 空间
 
-CLI flags:
+CLI 参数：
 
-- `minicode --resume`: launch with session picker
-- `minicode --resume <id>`: resume a specific session
-- `minicode --fork <id>`: fork a session and resume the fork
+- `minicode --resume`：启动时打开会话选择器
+- `minicode --resume <id>`：恢复指定会话
+- `minicode --fork <id>`：分叉指定会话并恢复
 
-Sessions are scoped per working directory and stored in `~/.mini-code/projects/` using append-only JSONL. On exit, MiniCode prints the session ID so you can resume later. Sessions older than 30 days are automatically cleaned up.
+会话按工作目录隔离，存储在 `~/.mini-code/projects/`，采用追加写入的 JSONL 格式。退出时会打印 session ID，方便后续恢复。超过 30 天的会话会自动清理。
 
-## Layered Memory and Project Initialization
+## 分层 Memory 与项目初始化
 
-MiniCode loads instruction files at startup from a three-layer hierarchy:
+MiniCode 启动时从三层层级加载指令文件：
 
-1. **User global**: `~/.mini-code/MINI.md` (also reads `~/.mini-code/CLAUDE.md` for compatibility) plus sorted `~/.mini-code/rules/*.md`
-2. **Project root and ancestors**: walks upward from cwd, reading `MINI.md`, `MINI.local.md`, `.mini-code/MINI.md`, `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, plus sorted `.mini-code/rules/*.md` at each level
-3. **Priority**: content closer to cwd takes precedence over broader layers
+1. **用户全局**：`~/.mini-code/MINI.md`（同时兼容读取 `~/.mini-code/CLAUDE.md`），以及按文件名排序的 `~/.mini-code/rules/*.md`
+2. **项目根及祖先目录**：从 cwd 向上递归，读取 `MINI.md`、`MINI.local.md`、`.mini-code/MINI.md`、`CLAUDE.md`、`CLAUDE.local.md`、`.claude/CLAUDE.md`，以及每层按文件名排序的 `.mini-code/rules/*.md`
+3. **优先级**：越靠近 cwd 的内容优先级越高
 
-Files with identical content are deduplicated. Per-file limit is ~8k chars, total limit ~20k chars. Use `/memory` in the interactive UI to inspect the exact files loaded, their scopes, line counts, and previews.
+相同内容的文件会自动去重。单文件上限约 8k 字符，总量上限约 20k 字符。在交互 UI 中输入 `/memory` 可以查看实际加载的文件、scope、行数、字符数和首行预览。
 
-Instruction files can include other files with a line containing only `@relative/path.md`. Includes are resolved relative to the source file; absolute paths and parent-directory (`..`) escapes are skipped for safety, and cycles are detected.
+指令文件支持用单独一行 `@relative/path.md` 引入其他文件。include 路径相对当前指令文件解析；绝对路径和包含父目录跳转（`..`）的路径会被跳过，循环 include 会被检测并跳过。
 
-`/init` scaffolds `.mini-code/`, `.mini-code/rules/`, and `MINI.md` for the current project, and adds generated private rule files to `.gitignore`.
+`/init` 会为当前项目初始化 `.mini-code/`、`.mini-code/rules/` 和 `MINI.md`，并把本地生成的私有规则文件加入 `.gitignore`。
 
-Example `MINI.md`:
+`MINI.md` 示例：
 
 ```markdown
-# Project Rules
+# 项目规则
 
-- Use TypeScript strict mode.
-- Run `npm run check` before committing.
-- Keep changes minimal and focused.
+- 使用 TypeScript strict 模式。
+- 提交前运行 `npm run check`。
+- 保持改动最小且聚焦。
 
 @.mini-code/rules/testing.md
 ```
 
-## Long Sessions and Context Management
+## 长会话与上下文管理
 
-MiniCode now treats long-running conversations as a first-class workflow:
+MiniCode 现在把长会话作为一等工作流处理：
 
-- Provider usage, when returned by the model endpoint, is recorded on assistant response boundaries and used as the primary token source.
-- If messages are added after the latest provider usage boundary, MiniCode adds a local tail estimate and labels the badge accordingly, for example `usage+est`.
-- If no provider usage is available, MiniCode falls back to local estimation so offline mode and compatible gateways still work.
-- Context stats feed the TUI badge, warning/blocking levels, and auto-compact trigger.
-- `/compact` performs manual context compression using snip compact or context collapse and records a compact boundary in the session log.
-- Automatic compaction can summarize or snip older turns once utilization gets high, using either **snip compact** (deterministic middle-history removal that protects edits and errors) or **context collapse** (projection-layer summarization of conversation spans).
-- After compaction, retained pre-compact usage is marked stale so an old provider total is not mistaken for the current context size.
-- Oversized tool results are written to `~/.mini-code/tool-results/` and replaced in the visible context with a preview and the full-output path. A single result over `50_000` characters is persisted, and batches are reduced toward a `200_000` character visible budget.
+- 模型接口返回 provider usage 时，MiniCode 会把它记录在 assistant response boundary 上，并作为 token 记账的主数据源。
+- 如果最新 provider usage boundary 之后又追加了消息，MiniCode 会补充本地 tail estimate，并在 badge 中标记来源，例如 `usage+est`。
+- 如果 provider 不返回 usage，MiniCode 会回退到本地估算，因此离线模式和兼容网关仍然可用。
+- 上下文统计会驱动 TUI badge、warning/blocking 级别和自动压缩触发。
+- `/compact` 会手动压缩上下文（使用裁剪压缩或上下文折叠），并在会话日志中写入 compact boundary。
+- 当上下文利用率过高时，自动压缩会自动触发，使用**裁剪压缩**（snip compact：确定性移除中段历史，保护文件编辑和出错轮次）或**上下文折叠**（context collapse：投影层摘要对话片段）来为后续对话腾出空间。
+- 压缩后，保留下来的压缩前 usage 会被标记为 stale，避免把压缩前的 usage 当作当前上下文真实值。
+- 超大工具结果会写入 `~/.mini-code/tool-results/`，并在可见上下文里替换成预览和完整输出路径。单个结果超过 `50_000` 字符会落盘；一批工具结果会被压到约 `200_000` 字符的可见预算内。
 
-Session storage and context compression work together: `loadSession` resumes from the latest compact boundary, while `loadTranscript` can still rebuild the visible transcript from the JSONL event log.
+会话存储和上下文压缩会一起工作：`loadSession` 会从最近的 compact boundary 之后恢复，而 `loadTranscript` 仍然可以从 JSONL 事件日志重建可见 transcript。
 
-## Configuration
+## 配置
 
-Example configuration:
+配置示例：
 
 ```json
 {
@@ -268,7 +267,7 @@ Example configuration:
 }
 ```
 
-Project-scoped MCP config is also supported through Claude Code compatible `.mcp.json`:
+也支持 Claude Code 风格的项目级 `.mcp.json`：
 
 ```json
 {
@@ -281,212 +280,212 @@ Project-scoped MCP config is also supported through Claude Code compatible `.mcp
 }
 ```
 
-For vendor compatibility, MiniCode now auto-negotiates stdio framing:
+为了兼容不同厂商的 MCP 实现，MiniCode 现在会自动协商 stdio framing：
 
-- standard MCP `Content-Length` framing is tried first
-- if that fails, MiniCode falls back to newline-delimited JSON
-- you can force a mode per server with `"protocol": "content-length"` or `"protocol": "newline-json"`
-- for remote MCP over HTTP, use `"protocol": "streamable-http"` with `"url"` (and optional `"headers"`)
-- header values support environment interpolation, e.g. `"Authorization": "Bearer $MCP_TOKEN"`
+- 默认先尝试标准 MCP 的 `Content-Length` framing
+- 如果失败，再自动回退到按行分隔的 JSON
+- 也可以在单个 server 上通过 `"protocol": "content-length"` 或 `"protocol": "newline-json"` 强制指定
+- 远程 MCP 可使用 `"protocol": "streamable-http"`，并配置 `"url"`（可选 `"headers"`）
+- header 的值支持环境变量插值，例如 `"Authorization": "Bearer $MCP_TOKEN"`
 
-Remote MCP authentication strategy (lightweight by design):
+远程 MCP 认证策略（保持轻量）：
 
-- use `minicode mcp login <name> --token <bearer-token>` to store a bearer token locally
-- use `minicode mcp logout <name>` to clear a stored token
-- for now, MiniCode intentionally uses this token-based path instead of a full built-in OAuth callback + refresh state machine
-- this keeps the implementation small and aligned with MiniCode's lightweight architecture goals; full OAuth automation may be added later when needed
+- 使用 `minicode mcp login <name> --token <bearer-token>` 本地保存 bearer token
+- 使用 `minicode mcp logout <name>` 清除已保存 token
+- 当前版本有意采用 token 方案，不内置完整 OAuth 回调 + refresh 状态机
+- 这样可以保持实现简洁并符合 MiniCode 轻量架构目标；后续确有需要再补完整 OAuth 自动化
 
-Skills are discovered from:
+Skills 默认会从这些位置发现：
 
 - `./.mini-code/skills/<skill-name>/SKILL.md`
 - `~/.mini-code/skills/<skill-name>/SKILL.md`
 - `./.claude/skills/<skill-name>/SKILL.md`
 - `~/.claude/skills/<skill-name>/SKILL.md`
 
-Configuration priority:
+配置优先级：
 
 1. `~/.mini-code/settings.json`
 2. `~/.mini-code/mcp.json`
-3. project `.mcp.json`
-4. compatible existing local settings
-5. process environment variables
+3. 项目级 `.mcp.json`
+4. 兼容的本地已有配置
+5. 当前进程环境变量
 
-## Skills and MCP Usage
+## Skills 与 MCP 用法
 
-MiniCode supports two extension layers:
+MiniCode 现在支持两类扩展：
 
-- `skills`: local workflow instructions, usually described by a `SKILL.md`
-- `MCP`: external tool providers that expose tools, resources, and prompts into MiniCode
+- `skills`：本地工作流说明，一般由一个 `SKILL.md` 描述如何完成某类任务
+- `MCP`：外部工具源，启动后会把远端 server 暴露的 tools / resources / prompts 接入 MiniCode
 
-### Skills: install, inspect, trigger
+### Skills：安装、查看、触发
 
-Install a local skill:
+安装一个本地 skill：
 
 ```bash
 minicode skills add ~/minimax-skills/skills/frontend-dev --name frontend-dev
 ```
 
-List installed or discovered skills:
+查看已发现的 skills：
 
 ```bash
 minicode skills list
 ```
 
-Inside the interactive UI, you can also run:
+进入交互界面后，也可以用：
 
 ```text
 /skills
 ```
 
-to inspect which skills are available in the current session.
+来检查当前会话里可用的 skills。
 
-If you explicitly mention a skill name, MiniCode will prefer loading it. For example:
-
-```text
-Use the frontend-dev skill and directly rebuild the current landing page instead of stopping at a plan.
-```
-
-If you want to be even more explicit:
+如果你明确提到 skill 名，MiniCode 会优先加载它。比如：
 
 ```text
-Load the fullstack-dev skill first, then follow its workflow to implement this task.
+请使用 frontend-dev skill，直接重构当前 landing page，不要只停在方案说明。
 ```
 
-A common pattern is to clone an official or Claude Code-compatible skills repo locally and install from there:
+也可以更明确地要求先读 skill：
+
+```text
+先加载 fullstack-dev skill，再根据这个 skill 的工作流实现当前需求。
+```
+
+一个常见用法是把官方或兼容 Claude Code 的 skills 仓库 clone 到本地后再安装：
 
 ```bash
 git clone https://github.com/MiniMax-AI/skills.git ~/minimax-skills
 minicode skills add ~/minimax-skills/skills/frontend-dev --name frontend-dev
 ```
 
-### MCP: install, inspect, trigger
+### MCP：安装、查看、触发
 
-Install a user-scoped MCP server:
+安装一个用户级 MCP server：
 
 ```bash
 minicode mcp add MiniMax --env MINIMAX_API_KEY=your-key --env MINIMAX_API_HOST=https://api.minimaxi.com -- uvx minimax-coding-plan-mcp -y
 ```
 
-List configured MCP servers:
+查看当前已配置的 MCP：
 
 ```bash
 minicode mcp list
 ```
 
-To configure an MCP server only for the current project, add `--project`:
+如果你想只给当前项目配置 MCP，可以加 `--project`：
 
 ```bash
 minicode mcp add filesystem --project -- npx -y @modelcontextprotocol/server-filesystem .
 minicode mcp list --project
 ```
 
-Inside the interactive UI, run:
+进入交互界面后，可以用：
 
 ```text
 /mcp
 ```
 
-to see which servers are connected, which protocol they negotiated, and how many tools / resources / prompts they expose.
+查看当前会话里哪些 server 已连接、用了什么协议、暴露了多少 tools / resources / prompts。
 
-MCP tools are automatically registered as:
+MCP tools 会自动注册成：
 
 ```text
 mcp__<server_name>__<tool_name>
 ```
 
-For example, after connecting the MiniMax MCP server you may see:
+例如安装 MiniMax MCP 后，你可能会看到：
 
 - `mcp__minimax__web_search`
 - `mcp__minimax__understand_image`
 
-These tool names are not hand-written in MiniCode. They appear automatically after a successful MCP connection.
+这些工具不需要手动声明，server 连接成功后会自动出现在工具列表中。
 
-### How to use them in chat
+### 在对话里怎么用
 
-The simplest approach is to just describe the task naturally and let the model decide when to use a skill or MCP tool:
-
-```text
-Search for recent Chinese-language resources about MCP and give me 5 representative links.
-```
-
-If MiniMax MCP is connected, the model will typically choose `mcp__minimax__web_search`.
-
-If you want a more controlled workflow, name the skill or target capability explicitly:
+最简单的方式是直接自然语言描述需求，让模型自己决定是否调用 skill 或 MCP tool：
 
 ```text
-Use the frontend-dev skill and directly modify the current project files to turn this page into a more complete product landing page.
+搜索一下最近关于 MCP 的中文资料，给我 5 条有代表性的链接。
 ```
 
-Or:
+如果当前已连接 MiniMax MCP，模型通常会自动选择 `mcp__minimax__web_search`。
+
+如果你想更稳一些，可以把 skill 或目标写清楚：
 
 ```text
-Use the connected MCP tools to search for the MiniMax MCP guide and summarize what capabilities it provides.
+请使用 frontend-dev skill，直接修改当前项目文件，把页面重做成更完整的产品落地页。
 ```
 
-### When to use skills vs MCP
+或者：
 
-- `skills` are better for workflow, conventions, domain-specific instructions, and reusable execution patterns
-- `MCP` is better for search, image understanding, browsers, filesystems, databases, and other remote capabilities
+```text
+请使用已连接的 MCP 工具帮我搜索 MiniMax MCP guide，并总结它提供了哪些能力。
+```
 
-A common combination is:
+### 什么时候用 skills，什么时候用 MCP
 
-- use a skill such as `frontend-dev` to shape how the work should be done
-- use MCP to provide external search, image understanding, or system integrations
+- `skills` 更适合沉淀工作流、规范、领域经验
+- `MCP` 更适合接入搜索、图片理解、外部系统、数据库、浏览器、文件系统等远端能力
 
-### Compatibility notes
+一个常见组合是：
 
-MiniCode currently focuses on:
+- 用 `frontend-dev` 这类 skill 约束页面改造方式
+- 再让已连接 of MCP 提供搜索、图片理解或其他外部能力
 
-- local `SKILL.md` discovery with `load_skill`
-- stdio MCP servers
+### 兼容性说明
+
+MiniCode 当前主要支持：
+
+- 本地 `SKILL.md` 发现与 `load_skill`
+- stdio MCP server
 - MCP tools
-- generic helper tools for MCP resources and prompts
+- MCP resources / prompts 的通用 helper tools
 
-For vendor compatibility, MiniCode automatically tries:
+为了兼容不同厂商实现，MiniCode 会自动尝试：
 
-- standard `Content-Length` framing
-- then falls back to `newline-json` if needed
+- 标准 `Content-Length` framing
+- 失败后回退到 `newline-json`
 
-That means servers such as MiniMax MCP, which use newline-delimited JSON over stdio, can still be connected directly.
+所以像 MiniMax 这类采用按行 JSON 的 MCP server，也可以直接接入。
 
-## Product Showcase Page
+## 产品介绍展示页
 
-- Open [docs/index.html](./docs/index.html) in a browser for a visual product overview.
-- GitHub Pages (recommended): `https://liumengxuan04.github.io/MiniCode/`
+- 在浏览器中打开 [docs/index.html](./docs/index.html)，即可查看可视化产品介绍页面。
+- GitHub Pages 推荐访问地址：`https://liumengxuan04.github.io/MiniCode/`
 
-## Project Structure
+## 项目结构
 
-- `src/index.ts`: CLI entry
-- `src/agent-loop.ts`: multi-step model/tool loop
-- `src/tool.ts`: tool registry and execution
-- `src/skills.ts`: local skill discovery and loading
-- `src/mcp.ts`: stdio MCP client and dynamic tool wrapping
-- `src/manage-cli.ts`: top-level `minicode mcp` / `minicode skills` management commands
-- `src/session.ts`: append-only session JSONL, resume/fork/rename, compact boundaries, and expiry cleanup
-- `src/compact/*`: manual compact, auto-compact, context collapse projection layer, deterministic snip compact, and conversation summarization helpers
-- `src/utils/token-estimator.ts`: provider-usage-first context accounting with estimate fallback
-- `src/utils/tool-result-storage.ts`: large tool-output persistence and preview replacement
-- `src/tools/*`: built-in tools
-- `src/tui/*`: terminal UI modules
-- `src/config.ts`: runtime configuration loading
-- `src/install.ts`: interactive installer
+- `src/index.ts`：CLI 入口
+- `src/agent-loop.ts`：多步模型/工具循环
+- `src/tool.ts`：工具注册与执行
+- `src/skills.ts`：本地 skill 发现与加载
+- `src/mcp.ts`：stdio MCP 客户端与动态工具封装
+- `src/manage-cli.ts`：顶层 `minicode mcp` / `minicode skills` 管理命令
+- `src/session.ts`：追加写入的会话 JSONL、恢复/分叉/重命名、compact boundary 和过期清理
+- `src/compact/*`：手动压缩、自动压缩、上下文折叠投影层、确定性裁剪压缩和对话摘要辅助逻辑
+- `src/utils/token-estimator.ts`：provider usage 优先的上下文记账与本地估算 fallback
+- `src/utils/tool-result-storage.ts`：大工具输出持久化与预览替换
+- `src/tools/*`：内置工具集合
+- `src/tui/*`：终端 UI 模块
+- `src/config.ts`：运行时配置加载
+- `src/install.ts`：交互式安装器
 
-## Code Size
+## 代码规模
 
-Current core implementation size is about **7,874 lines**.
+当前核心实现约 **7,874 行**。
 
-Counting scope:
+统计口径：
 
-- included: core TypeScript source, built-in tools, config, MCP, sessions, compaction, adapters, permissions, and `bin/minicode`
-- excluded: docs, tests, `external/`, `node_modules/`, and TUI files (`src/tui/`, `src/tty-app.ts`, `src/ui.ts`)
+- 纳入：核心 TypeScript 源码、内置工具、配置、MCP、会话、压缩、adapter、permissions，以及 `bin/minicode`
+- 排除：文档、测试、`external/`、`node_modules/` 和 TUI 文件（`src/tui/`、`src/tty-app.ts`、`src/ui.ts`）
 
-If `src/tty-app.ts` and `src/ui.ts` are included while still excluding `src/tui/`, the total is about **9,767 lines**.
+如果只排除 `src/tui/`，但保留 `src/tty-app.ts` 和 `src/ui.ts`，总计约 **9,767 行**。
 
-## Development
+## 开发说明
 
 ```bash
 npm run check
 npm test
 ```
 
-MiniCode is intentionally small and pragmatic. The goal is to keep the architecture understandable, hackable, and easy to extend.
+MiniCode 有意保持小而实用。目标是让整体架构足够清晰、易改造、易扩展。

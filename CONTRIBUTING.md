@@ -1,163 +1,160 @@
-# Contributing to MiniCode
+# MiniCode 贡献规范
 
-Thanks for contributing to MiniCode.
+欢迎为 MiniCode 提交 PR。
 
-MiniCode welcomes pull requests, but the project has a clear scope: it is meant to stay small, readable, and close in spirit to Claude Code's core design direction.
+本项目有明确的边界：它需要保持小、清晰、易读，并且在设计方向上尽量贴近 Claude Code 的核心思路。
 
-This document explains the baseline expectations for contributions.
+这份文档用于说明贡献时的基本要求。
 
-## Core Principles
+## 核心原则
 
-### 1. Keep the project lightweight
+### 1. 保持项目轻量
 
-Please avoid introducing overly complex design changes.
+请尽量避免引入过于复杂的设计变动。
 
-MiniCode is intentionally small. New contributions should preserve:
+MiniCode 有意保持为一个小型项目。新增改动应尽量保持：
 
-- a compact codebase
-- direct control flow
-- low conceptual overhead
-- easy traceability from user action to model loop, tool call, and UI update
+- 代码库体量紧凑
+- 控制流直接
+- 理解成本低
+- 用户操作到模型循环、工具调用、UI 更新之间的链路清晰
 
-Changes that add large abstractions, deep indirection, or framework-heavy rewrites are usually not a good fit unless they are clearly necessary.
+如果一个改动会引入很重的抽象层、很深的间接跳转，或者明显增加系统复杂度，通常不太适合这个项目，除非它确实是必要的。
 
-### 2. Stay aligned with Claude Code's design direction
+### 2. 与 Claude Code 的设计方向保持趋同
 
-Because of the nature of this project, new features should remain close to Claude Code's source-level design direction wherever possible.
+由于项目性质，新增特性应尽量与 Claude Code 源码本身的设计方向趋同或相似。
 
-That does not mean copying everything mechanically. It means:
+这并不意味着机械照搬，而是意味着：
 
-- prefer similar architectural ideas over unrelated inventions
-- preserve the same mental model when adapting a feature
-- avoid introducing product behavior that clearly diverges from the Claude Code style without a strong reason
+- 优先借鉴相近的架构思路，而不是发明完全无关的新模式
+- 在移植功能时，尽量保持相同的心智模型
+- 如果某个功能明显偏离 Claude Code 的风格，需要有足够强的理由
 
-MiniCode is a lightweight adaptation, not an unrelated terminal agent project.
+MiniCode 是一个轻量借鉴版，不是一个完全独立路线的 terminal agent 项目。
 
-## Contribution Expectations
+## 贡献要求
 
-### 3. Prefer small, incremental changes
+### 3. 优先做小步、渐进式修改
 
-PRs should be easy to review.
+PR 应该尽量容易 review。
 
-Please prefer:
+请优先采用：
 
-- focused changes over broad refactors
-- one feature or one fix per PR
-- changes that can be explained clearly in a short PR description
+- 聚焦型改动，而不是大范围重构
+- 一个 PR 只解决一个功能或一个问题
+- 能用较短说明讲清楚的改动
 
-If a feature is large, split it into smaller steps whenever possible.
+如果一个功能较大，请尽量拆成多个小步骤推进。
 
-### 4. Preserve existing interaction patterns
+### 4. 尽量保持现有交互节奏
 
-When changing the CLI, TUI, tool loop, permissions, MCP handling, or skills behavior:
+如果改动涉及 CLI、TUI、tool loop、权限系统、MCP 接入或 skills 行为，请尽量：
 
-- preserve the current user-facing rhythm unless there is a strong reason to change it
-- avoid breaking existing commands and workflows
-- avoid introducing surprising behavior changes without documenting them
+- 保持当前面向用户的交互节奏
+- 不要轻易破坏现有命令和工作流
+- 如果确实改变了行为，需要同步说明
 
-### 5. Keep safety boundaries intact
+### 5. 不要随意削弱安全边界
 
-MiniCode includes important safety boundaries around:
+MiniCode 当前的重要边界包括：
 
-- file modification review
-- path access
-- command execution
-- approval flow
+- 文件修改前 review
+- 路径访问控制
+- 命令执行控制
+- 审批流程
 
-New contributions should not weaken these boundaries casually.
+如果改动会影响这些边界，请在 PR 中明确说明原因和影响。
 
-If a change affects safety behavior, explain it clearly in the PR.
+### 6. 可读性优先于炫技
 
-### 6. Prefer explicitness over cleverness
+这个项目本身也用于学习和参考。
 
-This project is also meant to be studied.
+因此请优先选择：
 
-Please prefer:
+- 可读代码，而不是过度技巧化的写法
+- 显式的数据流，而不是隐藏式魔法
+- 简单工具函数，而不是过早抽象
 
-- readable code over clever compactness
-- explicit data flow over hidden magic
-- simple utilities over premature abstraction
+如果一个设计更难理解，那它也应该带来足够明确的收益。
 
-If a design is harder to understand, it should also bring clear value.
+### 7. 依赖保持克制
 
-### 7. Keep dependencies minimal
+新增依赖前，请先判断：
 
-Avoid adding new dependencies unless they materially improve the project.
+- 现有代码能否完成同样的事情
+- 这个依赖是否符合项目轻量定位
+- 它是否会让维护和理解成本明显上升
 
-Before adding one, ask:
+如果收益不大，请尽量不要引入新依赖。
 
-- can this be done with existing code?
-- does the dependency fit the lightweight nature of the project?
-- will it make the codebase harder to maintain or understand?
+### 8. 行为变化要同步更新文档
 
-### 8. Update docs when behavior changes
+如果 PR 改变了面向用户的行为，请同步更新相关文档。
 
-If a PR changes user-facing behavior, please update the relevant documentation.
-
-This may include:
+常见包括：
 
 - `README.md`
-- `README.zh-CN.md`
-- architecture docs
-- new command or configuration examples
+- 架构文档
+- 新命令或新配置示例
 
-### 9. Verify before opening a PR
+### 9. 提交前先完成基本验证
 
-Before opening a PR, please make sure:
+在打开 PR 之前，请至少确认：
 
-- the code builds cleanly
-- the relevant behavior has been tested
-- `npm run check` passes
+- 代码可以正常构建
+- 相关行为已经过验证
+- `npm run check` 通过
 
-If something is intentionally incomplete or unverified, mention it explicitly in the PR description.
+如果某部分暂时没有验证，请在 PR 描述中明确写出来。
 
-### 10. Check issues before starting a feature
+### 10. 新增特性前先查看 issue
 
-For new features, please check the repository issues first.
+如果是新增特性，请先查看仓库里的 issue。
 
-This helps avoid duplicated work and keeps implementation aligned with the current roadmap.
+这样可以避免重复开发，也能让实现方向和当前路线图保持一致。
 
-The preferred flow is:
+更推荐的流程是：
 
-- check whether an issue already exists
-- check whether someone has already claimed the work
-- for medium or large features, open an issue first if none exists
-- link the PR to the relevant issue whenever possible
+- 先确认是否已经有对应 issue
+- 先确认是否已经有人认领该工作
+- 如果是中大型特性，而仓库里还没有对应 issue，建议先提 issue
+- 提交 PR 时，尽量关联对应 issue
 
-Small fixes and minor documentation changes can still go directly to PR when appropriate.
+如果只是很小的修复或文档改动，可以根据情况直接提 PR。
 
-## What Fits Well
+## 比较适合的贡献方向
 
-Contributions are especially welcome in areas such as:
+比较欢迎的贡献包括：
 
-- interaction polish
-- tool loop robustness
-- permission and review flow improvements
-- MCP compatibility
-- skills support
-- Claude Code-aligned architectural refinements
-- documentation clarity
+- 交互细节打磨
+- tool loop 稳定性增强
+- 权限与 review 流程改进
+- MCP 兼容性增强
+- skills 支持增强
+- 与 Claude Code 设计方向一致的架构细化
+- 文档清晰度提升
 
-## What Usually Does Not Fit
+## 通常不太适合的改动
 
-These kinds of changes usually need a stronger justification:
+下面这些方向通常需要更强的理由：
 
-- large rewrites that increase architecture complexity significantly
-- features that move MiniCode away from Claude Code's design direction
-- new layers of abstraction with little practical payoff
-- heavy dependency additions for relatively small gains
-- behavior changes that make the project harder to study or modify
+- 明显增大系统复杂度的大重构
+- 让 MiniCode 偏离 Claude Code 设计方向的功能
+- 实际收益不明显但抽象层很重的设计
+- 为了较小收益引入较重依赖
+- 让项目变得更难阅读、更难二次开发的改动
 
-## PR Notes
+## PR 说明建议
 
-A good PR description should briefly explain:
+一个好的 PR 描述最好能简要说明：
 
-- what changed
-- why it is needed
-- which issue it is related to, if applicable
-- how it stays lightweight
-- how it aligns with Claude Code's design direction
-- how it was verified
-- how reviewers can reproduce and verify the change locally
+- 改了什么
+- 为什么要改
+- 如果适用，对应的是哪个 issue
+- 为什么这次改动仍然保持轻量
+- 它和 Claude Code 的设计方向如何对应
+- 做了哪些验证
+- Reviewer 在本地如何复现和验证这次改动
 
-Thanks again for helping improve MiniCode while keeping the project focused.
+感谢你帮助 MiniCode 持续演进，同时也帮助这个项目保持清晰和克制。
