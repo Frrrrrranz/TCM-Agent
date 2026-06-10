@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["main", "master", "develop"]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 # NOTE: 两个 Job 独立并行执行，任一失败即标红整个 CI
 jobs:
   # ─── TypeScript Agent 验证 ────────────────────────────────────────────
