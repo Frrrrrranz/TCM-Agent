@@ -13,8 +13,9 @@ __pycache__/
 .mini-code/settings.local.json
 .mini-code/sessions/
 
-# 进度记录：保留在仓库外层 d:/OneDrive/Desktop/dev/TCM-Agent/进度/，不上传 GitHub
+# 进度与本地数据目录，不上传 GitHub
 进度/
+DB/
 
 # 本地数据导入与会话记录缓存
 tcm-mcp-server/data/memory.db
