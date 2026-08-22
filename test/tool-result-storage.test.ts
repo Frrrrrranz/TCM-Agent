@@ -3,7 +3,7 @@ import path from 'node:path'
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { ChatMessage } from '../src/types.js'
-import { MINI_CODE_DIR } from '../src/config.js'
+import { TCM_AGENT_DIR } from '../src/config.js'
 import {
   MAX_TOOL_RESULTS_PER_BATCH_CHARS,
   PERSISTED_OUTPUT_TAG,
@@ -196,7 +196,7 @@ describe('tool result replacement', () => {
       toolResult('../..\\evil/name', original),
     )
     const savedPath = extractSavedPath(result.content)
-    const root = path.join(MINI_CODE_DIR, TOOL_RESULTS_SUBDIR)
+    const root = path.join(TCM_AGENT_DIR, TOOL_RESULTS_SUBDIR)
     const relative = path.relative(root, savedPath)
 
     assert.ok(!relative.startsWith('..'))

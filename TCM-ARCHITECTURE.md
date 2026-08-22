@@ -25,7 +25,7 @@
 │                    TCM-Agent（项目根目录）                        │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  MiniCode (TypeScript) — 底层 Agent 框架【不动核心代码】    │  │
+│  │  TCM-Agent (TypeScript) — 底层 Agent 框架【不动核心代码】    │  │
 │  │                                                           │  │
 │  │  src/agent-loop.ts    ← 模型↔工具循环                     │  │
 │  │  src/tool.ts          ← 工具注册中心                       │  │
@@ -65,7 +65,7 @@
 
 | 原则 | 说明 |
 |------|------|
-| **零代码侵入** | 中医药知识层使用纯 Markdown，不修改底层 MiniCode 核心代码 |
+| **零代码侵入** | 中医药知识层使用纯 Markdown，不修改底层 TCM-Agent 核心代码 |
 | **分层解耦** | Agent 框架、知识层、数据引擎通过 MCP 协议通信 |
 | **混合检索** | SQLite 精确查询 + ChromaDB 语义检索互补 |
 | **可追溯入库** | Markdown 原文、结构化记录、校验状态和人工复核结果必须可追溯 |
@@ -76,7 +76,7 @@
 
 ## 二、分层說明
 
-### 2.1 主 Agent 框架（MiniCode）
+### 2.1 主 Agent 框架（TCM-Agent）
 
 > **核心代码不动**，仅通过 System Prompt 注入中医角色定义。
 
@@ -373,7 +373,7 @@ tcm-mcp-server/src/
 
 ### 5.1 为什么 TCM-Agent 需要 Harness
 
-> **MiniCode 主仓库**将 benchmark harness 列为 P2（非紧急），因为通用 coding agent 的评测场景复杂、标准不统一。
+> **TCM-Agent 主仓库**将 benchmark harness 列为 P2（非紧急），因为通用 coding agent 的评测场景复杂、标准不统一。
 >
 > **但 TCM-Agent 不同**——中医药领域有明确的「正确答案」可做 benchmark，且医疗场景对准确性要求极高，Harness 工程**不是可选项，而是必需品**。
 
@@ -578,7 +578,7 @@ jobs:
 ## 七、目录结构总览
 
 ```
-TCM-Agent/                              ← 基于 MiniCode 二开的 TCM-Agent 主仓库
+TCM-Agent/                              ← 基于 TCM-Agent 二开的 TCM-Agent 主仓库
 ├── TCM-AGENT.md                        ← 中医角色定义
 ├── .tcm-agent/
 │   ├── rules/
@@ -694,7 +694,7 @@ TCM-Agent/                              ← 基于 MiniCode 二开的 TCM-Agent 
 | 混合检索 | SQLite（精确查询）+ ChromaDB（语义检索） | 中药名/方剂名需精确匹配，症状描述需语义匹配 |
 | Embedding 模型 | bge-large-zh-v1.5（BAAI） | 中文语义最佳，开源免费 |
 | 重排序 | bge-reranker-large | 提升 RAG Top-3 准确率 |
-| MCP 传输协议 | stdio | MiniCode 底层框架默认支持，零配置 |
+| MCP 传输协议 | stdio | TCM-Agent 底层框架默认支持，零配置 |
 | 知识层格式 | 纯 Markdown | 零代码侵入，AI 可直接读取 |
 | 数据入库策略 | Schema 先行 + 规则解析 + LLM 辅助 + 人工复核 | 医疗知识必须可追溯、可校验、可回滚 |
 | LLM 抽取边界 | 只产出候选 JSON，不直接写库 | 防止幻觉或误抽取静默污染数据库 |
@@ -708,5 +708,5 @@ TCM-Agent/                              ← 基于 MiniCode 二开的 TCM-Agent 
 > **相关文档**
 >
 > - [TCM-AGENT.md](./TCM-AGENT.md) — 中医角色定义与行为准则
-> - [ARCHITECTURE_ZH.md](./ARCHITECTURE_ZH.md) — MiniCode 框架架构说明
-> - [ROADMAP_ZH.md](./ROADMAP_ZH.md) — MiniCode 路线图
+> - [ARCHITECTURE_ZH.md](./ARCHITECTURE_ZH.md) — TCM-Agent 框架架构说明
+> - 项目路线与阶段进度维护在 Git 仓库外层的 `.agents/` 协作目录中。

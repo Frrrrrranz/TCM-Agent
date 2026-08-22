@@ -9,9 +9,9 @@ __pycache__/
 *.sqlite3
 .playwright-cli/
 
-# MiniCode local artifacts
-.mini-code/settings.local.json
-.mini-code/sessions/
+# TCM-Agent local artifacts
+.tcm-agent/settings.local.json
+.tcm-agent/sessions/
 
 # 进度与本地数据目录，不上传 GitHub
 进度/

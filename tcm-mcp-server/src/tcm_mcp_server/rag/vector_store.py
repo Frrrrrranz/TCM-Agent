@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+CHROMA_MAX_BATCH_SIZE = 5000
 
 
 class VectorStore:
@@ -102,11 +103,14 @@ class VectorStore:
         if ids is None:
             ids = [f"{collection_name}_{i}" for i in range(len(texts))]
 
-        collection.add(
-            documents=texts,
-            metadatas=metadatas or [{}] * len(texts),
-            ids=ids,
-        )
+        resolved_metadatas = metadatas or [{}] * len(texts)
+        for start in range(0, len(texts), CHROMA_MAX_BATCH_SIZE):
+            end = start + CHROMA_MAX_BATCH_SIZE
+            collection.add(
+                documents=texts[start:end],
+                metadatas=resolved_metadatas[start:end],
+                ids=ids[start:end],
+            )
         logger.info("已向集合 '%s' 添加 %d 条文本", collection_name, len(texts))
 
     def similarity_search(

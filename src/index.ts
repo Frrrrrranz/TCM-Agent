@@ -30,6 +30,14 @@ import { createContentReplacementState } from './utils/tool-result-storage.js'
 async function main(): Promise<void> {
   const cwd = process.cwd()
   const argv = process.argv.slice(2)
+  const toolProfileIndex = argv.indexOf('--tool-profile')
+  const toolProfile =
+    toolProfileIndex !== -1 && argv[toolProfileIndex + 1] === 'tcm-consultation'
+      ? 'tcm-consultation'
+      : 'coding'
+  if (toolProfileIndex !== -1) {
+    argv.splice(toolProfileIndex, 2)
+  }
 
   let resumeTarget: string | 'picker' | undefined
   const resumeIndex = argv.indexOf('--resume')
@@ -70,11 +78,13 @@ async function main(): Promise<void> {
   const tools = await createDefaultToolRegistry({
     cwd,
     runtime,
+    profile: toolProfile,
   })
   const mcpHydration = hydrateMcpTools({
     cwd,
     runtime,
     tools,
+    profile: toolProfile,
   }).catch(() => {
     // Keep startup resilient even if some MCP servers fail.
   })
@@ -85,7 +95,7 @@ async function main(): Promise<void> {
   // 其他（DeepSeek、本地代理、OpenAI 等）→ OpenAIModelAdapter（/v1/chat/completions 协议）
   const isAnthropicNative = runtime?.baseUrl?.includes('anthropic.com') ?? false
   const model =
-    process.env.MINI_CODE_MODEL_MODE === 'mock'
+    process.env.TCM_AGENT_MODEL_MODE === 'mock'
       ? new MockModelAdapter()
       : isAnthropicNative
         ? new AnthropicModelAdapter(tools, loadRuntimeConfig)

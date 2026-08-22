@@ -1,7 +1,7 @@
 """
 TCM MCP Server 入口。
 
-注册所有中医药 MCP 工具，通过 stdio 协议与 mini-code 通信。
+注册所有中医药 MCP 工具，通过 stdio 协议与 TCM-Agent 通信。
 """
 
 from __future__ import annotations
@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 from .data.database import Database
+from .data.paths import get_data_paths
+from .mcp_response import build_mcp_response
 from .rag.embeddings import EmbeddingManager
 from .rag.vector_store import VectorStore
 from .rag.retriever import HybridRetriever
@@ -27,9 +29,10 @@ from .tools import (
 logger = logging.getLogger(__name__)
 
 # 数据目录配置
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DB_PATH = DATA_DIR / "tcm.db"
-CHROMA_DIR = DATA_DIR / "chroma"
+DATA_PATHS = get_data_paths()
+DATA_DIR = DATA_PATHS.data_dir
+DB_PATH = DATA_PATHS.db_path
+CHROMA_DIR = DATA_PATHS.chroma_dir
 
 
 def create_server() -> object:
@@ -115,7 +118,20 @@ def create_server() -> object:
         for tool in tools:
             if tool.name == name:
                 result = await tool.execute(**arguments)
-                return [TextContent(type="text", text=result)]
+                evidence = []
+                pipeline = getattr(tool, "pipeline", None)
+                if pipeline is not None and hasattr(pipeline, "evidence_for"):
+                    evidence = pipeline.evidence_for(name, arguments)
+                envelope = build_mcp_response(name, arguments, result, evidence)
+                return [
+                    TextContent(
+                        type="text",
+                        text=envelope.model_dump_json(
+                            by_alias=True,
+                            exclude_none=True,
+                        ),
+                    )
+                ]
 
         raise ValueError(f"未知工具: {name}")
 

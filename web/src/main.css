@@ -79,21 +79,21 @@
   --spacing-xl: 48px;
   --spacing-md: 16px;
 
-  /* 字体策略 */
-  --font-headline-lg: "Inter", sans-serif;
-  --font-headline-md: "Inter", sans-serif;
-  --font-body-lg: "JetBrains Mono", monospace;
-  --font-body-md: "JetBrains Mono", monospace;
-  --font-label-caps: "JetBrains Mono", monospace;
-  --font-code-sm: "JetBrains Mono", monospace;
+  /* 字体策略 - 优先采用现代高可读性中文与无衬线字体栈 */
+  --font-headline-lg: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  --font-headline-md: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  --font-body-lg: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  --font-body-md: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  --font-label-caps: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-code-sm: "JetBrains Mono", "Cascadia Code", Consolas, Menlo, Monaco, monospace;
 
-  /* 文字尺寸与行高 */
-  --text-headline-lg: 24px;
-  --text-headline-md: 18px;
+  /* 文字尺寸与舒适阅读行高 */
+  --text-headline-lg: 20px;
+  --text-headline-md: 16px;
   --text-body-lg: 15px;
-  --text-body-md: 13px;
-  --text-label-caps: 11px;
-  --text-code-sm: 12px;
+  --text-body-md: 14.5px;
+  --text-label-caps: 12px;
+  --text-code-sm: 12.5px;
 }
 
 /* 全局滚动条和通用基底样式 */
@@ -170,4 +170,47 @@ body {
 
 @keyframes slide-up-fade {
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Markdown 富文本排版样式 */
+.markdown-content {
+  line-height: 1.75;
+}
+
+.markdown-content p {
+  margin-bottom: 0.65rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: var(--color-primary, #83d7b5);
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.65rem;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.65rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content code {
+  font-family: var(--font-code-sm);
+  background-color: var(--color-surface-container-high);
+  color: var(--color-secondary, #b4ccc2);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
 }

@@ -1,5 +1,5 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
-import { MINI_CODE_DIR, MINI_CODE_HISTORY_PATH } from './config.js'
+import { TCM_AGENT_DIR, TCM_AGENT_HISTORY_PATH } from './config.js'
 
 type HistoryEntry = {
   display: string
@@ -12,7 +12,7 @@ const MAX_ENTRIES = 500
 
 export async function loadHistoryEntries(): Promise<string[]> {
   try {
-    const raw = await readFile(MINI_CODE_HISTORY_PATH, 'utf8')
+    const raw = await readFile(TCM_AGENT_HISTORY_PATH, 'utf8')
     const lines = raw.trim().split('\n').filter(Boolean)
     const entries: string[] = []
     for (const line of lines) {
@@ -36,7 +36,7 @@ export async function saveHistoryEntries(
   cwd: string,
   sessionId: string,
 ): Promise<void> {
-  await mkdir(MINI_CODE_DIR, { recursive: true })
+  await mkdir(TCM_AGENT_DIR, { recursive: true })
 
   const existing = await loadHistoryEntries()
   // Find which entries are new
@@ -50,17 +50,17 @@ export async function saveHistoryEntries(
     JSON.stringify({ display, timestamp: now, project: cwd, sessionId }),
   )
 
-  await appendFile(MINI_CODE_HISTORY_PATH, lines.join('\n') + '\n', 'utf8')
+  await appendFile(TCM_AGENT_HISTORY_PATH, lines.join('\n') + '\n', 'utf8')
 
   // Trim to MAX_ENTRIES if needed
   try {
-    const raw = await readFile(MINI_CODE_HISTORY_PATH, 'utf8')
+    const raw = await readFile(TCM_AGENT_HISTORY_PATH, 'utf8')
     const allLines = raw.trim().split('\n').filter(Boolean)
     if (allLines.length > MAX_ENTRIES) {
       const { writeFile } = await import('node:fs/promises')
       const kept = allLines.slice(-MAX_ENTRIES)
       await writeFile(
-        MINI_CODE_HISTORY_PATH,
+        TCM_AGENT_HISTORY_PATH,
         kept.join('\n') + '\n',
         'utf8',
       )

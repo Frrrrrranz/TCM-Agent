@@ -13,6 +13,6 @@ export function renderInputPrompt(input: string, cursorOffset: number): string {
   return [
     `${YELLOW}${BOLD}prompt${RESET} ${DIM}Enter send | /help commands | Esc clear | Ctrl+C exit${RESET}`,
     '',
-    `${GREEN}${BOLD}mini-code>${RESET} ${before}${REVERSE}${current}${RESET}${after}${DIM}${input ? '' : ' Ask for code, files, tasks, or MCP tools'}${RESET}`,
+    `${GREEN}${BOLD}tcm-agent>${RESET} ${before}${REVERSE}${current}${RESET}${after}${DIM}${input ? '' : ' Ask for code, files, tasks, or MCP tools'}${RESET}`,
   ].join('\n')
 }

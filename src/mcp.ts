@@ -1,9 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import os from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
-import { readMcpTokensFile } from './config.js'
+import { readMcpTokensFile, TCM_AGENT_DIR } from './config.js'
 import type { McpServerConfig } from './config.js'
 import type { ToolDefinition, ToolResult } from './tool.js'
 import { getErrorCode } from './utils/errors.js'
@@ -63,8 +62,7 @@ type JsonRpcProtocol = 'content-length' | 'newline-json' | 'streamable-http'
 const MCP_INITIALIZE_TIMEOUT_MS = 10000
 const MCP_INITIALIZE_PROBE_TIMEOUT_MS = 1200
 const MCP_PROTOCOL_CACHE_PATH = path.join(
-  os.homedir(),
-  '.mini-code',
+  TCM_AGENT_DIR,
   'mcp-protocol-cache.json',
 )
 
@@ -464,7 +462,7 @@ class StdioMcpClient {
         protocolVersion: '2024-11-05',
         capabilities: {},
         clientInfo: {
-          name: 'mini-code',
+          name: 'tcm-agent',
           version: '0.1.0',
         },
       },
@@ -807,7 +805,7 @@ class StreamableHttpMcpClient {
         protocolVersion: '2024-11-05',
         capabilities: {},
         clientInfo: {
-          name: 'mini-code',
+          name: 'tcm-agent',
           version: '0.1.0',
         },
       },
@@ -976,6 +974,8 @@ class StreamableHttpMcpClient {
 export async function createMcpBackedTools(args: {
   cwd: string
   mcpServers: Record<string, McpServerConfig>
+  allowedServerNames?: ReadonlySet<string>
+  includeAuxiliaryTools?: boolean
 }): Promise<{
   tools: ToolDefinition<unknown>[]
   servers: McpServerSummary[]
@@ -991,6 +991,9 @@ export async function createMcpBackedTools(args: {
   let hasPublishedPrompts = false
 
   for (const [serverName, config] of Object.entries(args.mcpServers)) {
+    if (args.allowedServerNames && !args.allowedServerNames.has(serverName)) {
+      continue
+    }
     const endpointKey = `${serverName}::${summarizeServerEndpoint(config)}`
     if (config.enabled === false) {
       servers.push({
@@ -1107,7 +1110,7 @@ export async function createMcpBackedTools(args: {
     })
   }
 
-  if (clientsByServer.size > 0 && hasPublishedResources) {
+  if (args.includeAuxiliaryTools !== false && clientsByServer.size > 0 && hasPublishedResources) {
     tools.push({
       name: 'list_mcp_resources',
       description: 'List optional MCP resources exposed by connected MCP servers when a server actually publishes them.',
@@ -1179,7 +1182,7 @@ export async function createMcpBackedTools(args: {
     } satisfies ToolDefinition<{ server: string; uri: string }>)
   }
 
-  if (clientsByServer.size > 0 && hasPublishedPrompts) {
+  if (args.includeAuxiliaryTools !== false && clientsByServer.size > 0 && hasPublishedPrompts) {
     tools.push({
       name: 'list_mcp_prompts',
       description: 'List optional MCP prompts exposed by connected MCP servers when a server actually publishes them.',

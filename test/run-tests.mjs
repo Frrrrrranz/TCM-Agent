@@ -1,7 +1,10 @@
 import { readdir } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
+import console from 'node:console'
+import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import process from 'node:process'
+import { fileURLToPath, URL } from 'node:url'
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const testDir = path.join(root, 'test')
@@ -19,7 +22,13 @@ if (testFiles.length === 0) {
 const child = spawn(
   process.execPath,
   ['--import', 'tsx', '--test', ...testFiles],
-  { stdio: 'inherit' },
+  {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      TCM_AGENT_HOME: path.join(os.tmpdir(), `tcm-agent-tests-${process.pid}`),
+    },
+  },
 )
 
 child.on('exit', (code, signal) => {

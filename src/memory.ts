@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
-import { MINI_CODE_DIR } from './config.js'
+import { TCM_AGENT_DIR } from './config.js'
 
 export type ContextFile = {
   path: string
@@ -22,9 +22,6 @@ const CANDIDATES_PER_DIR = [
   'TCM-AGENT.md',
   'TCM-AGENT.local.md',
   path.join('.tcm-agent', 'TCM-AGENT.md'),
-  'MINI.md',
-  'MINI.local.md',
-  path.join('.mini-code', 'MINI.md'),
   'CLAUDE.md',
   'CLAUDE.local.md',
   path.join('.claude', 'CLAUDE.md'),
@@ -150,10 +147,9 @@ export async function discoverInstructionFiles(
   const files: ContextFile[] = []
 
   // User global first
-  const home = homeDir ?? MINI_CODE_DIR
+  const home = homeDir ?? TCM_AGENT_DIR
   const globalCandidates = [
     path.join(home, 'TCM-AGENT.md'),
-    path.join(home, 'MINI.md'),
     path.join(home, 'CLAUDE.md'),
   ]
   for (const candidate of globalCandidates) {
@@ -181,13 +177,6 @@ export async function discoverInstructionFiles(
       }
     }
 
-    for (const rulePath of await discoverRuleFiles(path.join(dir, '.mini-code', 'rules'))) {
-      const content = await tryRead(rulePath)
-      if (content) {
-        files.push({ path: rulePath, content: await resolveIncludes(content, rulePath, new Set([rulePath])) })
-      }
-    }
-
     for (const rulePath of await discoverRuleFiles(path.join(dir, '.tcm-agent', 'rules'))) {
       const content = await tryRead(rulePath)
       if (content) {
@@ -204,7 +193,7 @@ export function describeMemoryFiles(files: ContextFile[], cwd = process.cwd()): 
     const normalized = file.path.split(path.sep).join('/')
     const scope = normalized.includes('/rules/')
       ? 'rules'
-      : path.resolve(file.path).startsWith(path.resolve(MINI_CODE_DIR))
+      : path.resolve(file.path).startsWith(path.resolve(TCM_AGENT_DIR))
         ? 'global'
         : 'project'
     const trimmed = file.content.trim()

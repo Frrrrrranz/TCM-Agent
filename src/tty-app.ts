@@ -1540,7 +1540,7 @@ export async function runTtyApp(args: TtyAppArgs): Promise<void> {
       showCursor()
       exitAlternateScreen()
       process.stdin.pause()
-      process.stdout.write(`Session ${permissionArgs.sessionId} saved. To resume: minicode --resume ${permissionArgs.sessionId}\n`)
+      process.stdout.write(`Session ${permissionArgs.sessionId} saved. To resume: tcm-agent --resume ${permissionArgs.sessionId}\n`)
     }
 
     const finish = () => {
@@ -1749,7 +1749,7 @@ export async function runTtyApp(args: TtyAppArgs): Promise<void> {
                 state.status = null
                 pushTranscriptEntry(state, {
                   kind: 'assistant',
-                  body: `Project "${proj.dir}" has ${proj.sessionCount} session(s). Switch to it by exiting and running:\n\n  cd <project-path> && minicode --resume`,
+                  body: `Project "${proj.dir}" has ${proj.sessionCount} session(s). Switch to it by exiting and running:\n\n  cd <project-path> && tcm-agent --resume`,
                 })
                 renderScreen(permissionArgs, state)
               }

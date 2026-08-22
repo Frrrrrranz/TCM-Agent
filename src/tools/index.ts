@@ -15,6 +15,8 @@ import { runCommandTool } from './run-command.js'
 import { webFetchTool } from './web-fetch.js'
 import { webSearchTool } from './web-search.js'
 import { writeFileTool } from './write-file.js'
+import type { ToolProfile } from '../tool-profile.js'
+import { TCM_CONSULTATION_MCP_SERVERS } from '../tool-profile.js'
 
 function summarizeServerEndpoint(config: McpServerConfig): string {
   const remoteUrl = config.url?.trim()
@@ -42,24 +44,29 @@ function buildConnectingMcpSummaries(
 export async function createDefaultToolRegistry(args: {
   cwd: string
   runtime: RuntimeConfig | null
+  profile?: ToolProfile
 }): Promise<ToolRegistry> {
+  const profile = args.profile ?? 'coding'
   const skills = await discoverSkills(args.cwd)
   const mcpServers = args.runtime?.mcpServers ?? {}
+  const localTools = profile === 'tcm-consultation'
+    ? [askUserTool]
+    : [
+        askUserTool,
+        listFilesTool,
+        grepFilesTool,
+        readFileTool,
+        writeFileTool,
+        modifyFileTool,
+        editFileTool,
+        patchFileTool,
+        runCommandTool,
+        createLoadSkillTool(args.cwd),
+        webFetchTool,
+        webSearchTool,
+      ]
 
-  return new ToolRegistry([
-    askUserTool,
-    listFilesTool,
-    grepFilesTool,
-    readFileTool,
-    writeFileTool,
-    modifyFileTool,
-    editFileTool,
-    patchFileTool,
-    runCommandTool,
-    createLoadSkillTool(args.cwd),
-    webFetchTool,
-    webSearchTool,
-  ], {
+  return new ToolRegistry(localTools, {
     skills,
     mcpServers: buildConnectingMcpSummaries(mcpServers),
   })
@@ -69,10 +76,16 @@ export async function hydrateMcpTools(args: {
   cwd: string
   runtime: RuntimeConfig | null
   tools: ToolRegistry
+  profile?: ToolProfile
 }): Promise<void> {
+  const profile = args.profile ?? 'coding'
   const mcp = await createMcpBackedTools({
     cwd: args.cwd,
     mcpServers: args.runtime?.mcpServers ?? {},
+    allowedServerNames: profile === 'tcm-consultation'
+      ? TCM_CONSULTATION_MCP_SERVERS
+      : undefined,
+    includeAuxiliaryTools: profile !== 'tcm-consultation',
   })
   args.tools.addTools(mcp.tools)
   args.tools.setMcpServers(mcp.servers)

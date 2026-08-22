@@ -15,6 +15,9 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.4.13",
+    "marked": "^18.0.10",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"

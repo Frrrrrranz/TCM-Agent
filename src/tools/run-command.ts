@@ -154,7 +154,7 @@ function stripTrailingBackgroundOperator(command: string): string {
 export const runCommandTool: ToolDefinition<Input> = {
   name: 'run_command',
   description:
-    'Run a common development command from an allowlist. For shell pipelines or variable expansion, pass the full snippet in command and mini-code will run it via bash -lc.',
+    'Run a common development command from an allowlist. For shell pipelines or variable expansion, pass the full snippet in command and tcm-agent will run it via bash -lc.',
   inputSchema: {
     type: 'object',
     properties: {

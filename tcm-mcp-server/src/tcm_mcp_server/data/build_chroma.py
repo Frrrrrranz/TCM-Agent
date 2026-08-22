@@ -12,6 +12,7 @@ from pathlib import Path
 from .database import Database
 from ..rag.vector_store import VectorStore
 from ..rag.embeddings import EmbeddingManager
+from .paths import get_data_paths
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,9 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
     # ── 构建中药向量索引 ──────────────────────────────────────
     logger.info("构建中药向量索引...")
     herbs = db.conn.execute(
-        "SELECT name, category, nature, taste, meridian, effect, indication FROM herbs"
+        "SELECT id, name, category, nature, taste, meridian, effect, indication, "
+        "source_file, source_heading, source_text, source_hash, parser_version "
+        "FROM herbs"
     ).fetchall()
 
     herb_texts = []
@@ -44,19 +47,32 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
         )
         herb_texts.append(text)
         herb_metadatas.append({
+            "record_id": str(herb["id"]),
             "name": herb["name"],
             "category": herb["category"],
             "type": "herb",
+            "source_file": herb["source_file"],
+            "source_heading": herb["source_heading"],
+            "source_text": herb["source_text"],
+            "source_hash": herb["source_hash"],
+            "dataset_version": herb["parser_version"],
         })
 
     if herb_texts:
-        vector_store.add_texts("herbs", herb_texts, herb_metadatas)
+        vector_store.add_texts(
+            "herbs",
+            herb_texts,
+            herb_metadatas,
+            ids=[f"herb:{herb['id']}" for herb in herbs],
+        )
         logger.info("中药向量索引构建完成，共 %d 条", len(herb_texts))
 
     # ── 构建方剂向量索引 ──────────────────────────────────────
     logger.info("构建方剂向量索引...")
     prescriptions = db.conn.execute(
-        "SELECT name, category, effect, indication, syndrome, symptoms, composition FROM prescriptions"
+        "SELECT id, name, category, effect, indication, syndrome, symptoms, composition, "
+        "source_file, source_heading, source_text, source_hash, parser_version "
+        "FROM prescriptions"
     ).fetchall()
 
     pres_texts = []
@@ -73,19 +89,32 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
         )
         pres_texts.append(text)
         pres_metadatas.append({
+            "record_id": str(pres["id"]),
             "name": pres["name"],
             "category": pres["category"],
             "type": "prescription",
+            "source_file": pres["source_file"],
+            "source_heading": pres["source_heading"],
+            "source_text": pres["source_text"],
+            "source_hash": pres["source_hash"],
+            "dataset_version": pres["parser_version"],
         })
 
     if pres_texts:
-        vector_store.add_texts("prescriptions", pres_texts, pres_metadatas)
+        vector_store.add_texts(
+            "prescriptions",
+            pres_texts,
+            pres_metadatas,
+            ids=[f"prescription:{pres['id']}" for pres in prescriptions],
+        )
         logger.info("方剂向量索引构建完成，共 %d 条", len(pres_texts))
 
     # ── 构建证型向量索引 ──────────────────────────────────────
     logger.info("构建证型向量索引...")
     syndromes = db.conn.execute(
-        "SELECT name, category, key_symptoms, tongue, pulse, mechanism, treatment_principle FROM syndromes"
+        "SELECT id, name, category, key_symptoms, tongue, pulse, mechanism, treatment_principle, "
+        "source_file, source_heading, source_text, source_hash, parser_version "
+        "FROM syndromes"
     ).fetchall()
 
     syn_texts = []
@@ -102,20 +131,32 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
         )
         syn_texts.append(text)
         syn_metadatas.append({
+            "record_id": str(syn["id"]),
             "name": syn["name"],
             "category": syn["category"],
             "key_symptoms": syn["key_symptoms"],
             "type": "syndrome",
+            "source_file": syn["source_file"],
+            "source_heading": syn["source_heading"],
+            "source_text": syn["source_text"],
+            "source_hash": syn["source_hash"],
+            "dataset_version": syn["parser_version"],
         })
 
     if syn_texts:
-        vector_store.add_texts("syndromes", syn_texts, syn_metadatas)
+        vector_store.add_texts(
+            "syndromes",
+            syn_texts,
+            syn_metadatas,
+            ids=[f"syndrome:{syn['id']}" for syn in syndromes],
+        )
         logger.info("证型向量索引构建完成，共 %d 条", len(syn_texts))
 
     # ── 构建穴位向量索引 ──────────────────────────────────────
     logger.info("构建穴位向量索引...")
     acupoints = db.conn.execute(
-        "SELECT name, meridian, location, indication FROM acupoints"
+        "SELECT id, name, meridian, location, indication, source_file, source_heading, "
+        "source_text, source_hash, parser_version FROM acupoints"
     ).fetchall()
 
     acu_texts = []
@@ -129,13 +170,24 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
         )
         acu_texts.append(text)
         acu_metadatas.append({
+            "record_id": str(acu["id"]),
             "name": acu["name"],
             "meridian": acu["meridian"],
             "type": "acupoint",
+            "source_file": acu["source_file"],
+            "source_heading": acu["source_heading"],
+            "source_text": acu["source_text"],
+            "source_hash": acu["source_hash"],
+            "dataset_version": acu["parser_version"],
         })
 
     if acu_texts:
-        vector_store.add_texts("acupoints", acu_texts, acu_metadatas)
+        vector_store.add_texts(
+            "acupoints",
+            acu_texts,
+            acu_metadatas,
+            ids=[f"acupoint:{acu['id']}" for acu in acupoints],
+        )
         logger.info("穴位向量索引构建完成，共 %d 条", len(acu_texts))
 
     logger.info("向量库构建完成！")
@@ -148,9 +200,9 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    data_dir = Path(__file__).resolve().parent.parent.parent / "data"
-    db_path = data_dir / "tcm.db"
-    chroma_dir = data_dir / "chroma"
+    paths = get_data_paths()
+    db_path = paths.db_path
+    chroma_dir = paths.chroma_dir
 
     db = Database(db_path)
     db.connect()

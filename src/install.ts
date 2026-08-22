@@ -5,9 +5,9 @@ import process from 'node:process'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import {
-  MINI_CODE_SETTINGS_PATH,
+  TCM_AGENT_SETTINGS_PATH,
   loadEffectiveSettings,
-  saveMiniCodeSettings,
+  saveTcmAgentSettings,
 } from './config.js'
 
 function hasPathEntry(target: string): boolean {
@@ -52,8 +52,8 @@ async function main(): Promise<void> {
     const settings = await loadEffectiveSettings()
     const currentEnv = settings.env ?? {}
 
-    console.log('mini-code installer')
-    console.log(`配置会写入 ${MINI_CODE_SETTINGS_PATH}`)
+    console.log('tcm-agent installer')
+    console.log(`配置会写入 ${TCM_AGENT_SETTINGS_PATH}`)
     console.log('配置保存在独立目录中，不会影响其它本地工具配置。')
     console.log('')
 
@@ -76,7 +76,7 @@ async function main(): Promise<void> {
       throw new Error('ANTHROPIC_AUTH_TOKEN 不能为空。')
     }
 
-    await saveMiniCodeSettings({
+    await saveTcmAgentSettings({
       model,
       env: {
         ANTHROPIC_BASE_URL: baseUrl,
@@ -86,15 +86,15 @@ async function main(): Promise<void> {
     })
 
     const home = os.homedir()
-    const targetBinDir = process.env.MINI_CODE_BIN_DIR
-      ? path.resolve(process.env.MINI_CODE_BIN_DIR)
+    const targetBinDir = process.env.TCM_AGENT_BIN_DIR
+      ? path.resolve(process.env.TCM_AGENT_BIN_DIR)
       : path.join(home, '.local', 'bin')
-    const launcherPath = path.join(targetBinDir, 'minicode')
+    const launcherPath = path.join(targetBinDir, 'tcm-agent')
     const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
     const launcherScript = [
       '#!/usr/bin/env bash',
       'set -euo pipefail',
-      `exec "${path.join(repoRoot, 'bin', 'minicode')}" "$@"`,
+      `exec "${path.join(repoRoot, 'bin', 'tcm-agent')}" "$@"`,
       '',
     ].join('\n')
 
@@ -103,7 +103,7 @@ async function main(): Promise<void> {
 
     console.log('')
     console.log('安装完成。')
-    console.log(`配置文件: ${MINI_CODE_SETTINGS_PATH}`)
+    console.log(`配置文件: ${TCM_AGENT_SETTINGS_PATH}`)
     console.log(`启动命令: ${launcherPath}`)
 
     if (!hasPathEntry(targetBinDir)) {
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
       console.log(`export PATH="${targetBinDir}:$PATH"`)
     } else {
       console.log('')
-      console.log('现在你可以在任意终端输入 `minicode` 启动。')
+      console.log('现在你可以在任意终端输入 `tcm-agent` 启动。')
     }
   } finally {
     rl.close()

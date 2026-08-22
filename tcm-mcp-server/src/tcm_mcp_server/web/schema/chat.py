@@ -1,26 +1,58 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-from typing import Optional, Any, List
+from datetime import datetime, timezone
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+PROTOCOL_VERSION = 1
+MessageType = Literal["user_message", "cancel_turn", "heartbeat"]
+OutputType = Literal[
+    "init",
+    "heartbeat_ack",
+    "tool_start",
+    "tool_result",
+    "assistant_message",
+    "progress_message",
+    "turn_complete",
+    "turn_cancelled",
+    "error",
+]
+
+
+class ClientMessage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    protocol_version: Literal[PROTOCOL_VERSION] = Field(
+        PROTOCOL_VERSION, alias="protocolVersion"
+    )
+    type: MessageType
+    session_id: str = Field(..., min_length=1, max_length=128, alias="sessionId")
+    request_id: str | None = Field(None, min_length=1, max_length=128, alias="requestId")
+    sequence: int = Field(..., ge=0)
+    content: str | None = Field(None, min_length=1, max_length=12000)
+    cursor: int | None = Field(None, ge=0)
+
 
 class WebSocketMessage(BaseModel):
-    """
-    WebSocket 通信数据模型。
-    用于在前端与 Python 后端网关之间传输聊天文本、工具调用状态和错误信息。
-    """
-    type: str = Field(
-        ..., 
-        description="消息类型，如 user_message, progress_message, assistant_message, tool_start, tool_result, turn_complete, error"
-    )
-    content: Optional[str] = Field(None, description="流式产生的文本内容或报错详情")
-    toolName: Optional[str] = Field(None, description="调用的工具名")
-    input: Optional[Any] = Field(None, description="工具输入参数")
-    output: Optional[str] = Field(None, description="工具返回的结果")
-    is_error: Optional[bool] = Field(None, alias="isError", description="工具执行或大模型请求是否失败")
-    messages: Optional[List[dict[str, Any]]] = Field(None, description="Turn 结束后的完整消息历史")
-    modelName: Optional[str] = Field(None, description="init 帧携带的模型名称，用于前端动态展示")
-    session_id: Optional[str] = Field(None, alias="sessionId", description="当前会话的 UUID")
-    request_id: Optional[str] = Field(None, alias="requestId", description="当前对话轮次的 UUID")
+    """Validated v1 frame exchanged between the web gateway and Node Agent."""
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    protocol_version: Literal[PROTOCOL_VERSION] = Field(
+        PROTOCOL_VERSION, alias="protocolVersion"
+    )
+    type: OutputType
+    session_id: str | None = Field(None, max_length=128, alias="sessionId")
+    request_id: str | None = Field(None, max_length=128, alias="requestId")
+    sequence: int = Field(0, ge=0)
+    tool_use_id: str | None = Field(None, max_length=128, alias="toolUseId")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    content: str | None = Field(None, max_length=12000)
+    tool_name: str | None = Field(None, max_length=256, alias="toolName")
+    input: Any | None = None
+    output: str | None = Field(None, max_length=20000)
+    is_error: bool | None = Field(None, alias="isError")
+    messages: list[dict[str, Any]] | None = None
+    model_name: str | None = Field(None, max_length=256, alias="modelName")
+    streaming: bool | None = None

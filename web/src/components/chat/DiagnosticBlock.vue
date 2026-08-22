@@ -1,9 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
 
 const props = defineProps<{
   content: string
 }>()
+
+const renderMarkdown = (text: string): string => {
+  if (!text) return ''
+  const html = marked.parse(text) as string
+  return DOMPurify.sanitize(html)
+}
 
 const parsedSections = computed(() => {
   const text = props.content || ''
@@ -23,7 +36,7 @@ const parsedSections = computed(() => {
       matches.push({
         title: match[1],
         index: match.index,
-        textLength: match[0].length
+        textLength: match[0].length,
       })
     }
   }
@@ -51,23 +64,31 @@ const parsedSections = computed(() => {
     }
   }
   
-  return { diagnosis, formula, safety }
+  return {
+    diagnosisHtml: renderMarkdown(diagnosis),
+    formulaHtml: renderMarkdown(formula),
+    safetyHtml: renderMarkdown(safety),
+    hasDiagnosis: Boolean(diagnosis),
+    hasFormula: Boolean(formula),
+    hasSafety: Boolean(safety),
+  }
 })
 </script>
 
 <template>
   <div class="space-y-md">
     <!-- 辨证结果 -->
-    <div v-if="parsedSections.diagnosis" class="space-y-xs">
+    <div v-if="parsedSections.hasDiagnosis" class="space-y-xs">
       <h3 class="font-label-caps text-label-caps text-primary uppercase">【辨证结果】</h3>
-      <p class="font-body-md text-body-md leading-[1.7] pl-md border-l border-outline-variant text-on-surface whitespace-pre-wrap">
-        {{ parsedSections.diagnosis }}
-      </p>
+      <div
+        class="markdown-content font-body-md text-body-md leading-[1.75] pl-md border-l border-outline-variant text-on-surface"
+        v-html="parsedSections.diagnosisHtml"
+      />
     </div>
 
     <!-- 方剂建议 (可折叠) -->
     <details
-      v-if="parsedSections.formula"
+      v-if="parsedSections.hasFormula"
       class="group border border-outline-variant rounded-sm bg-surface-container-lowest"
       open
     >
@@ -75,14 +96,15 @@ const parsedSections = computed(() => {
         <span>【方剂建议】</span>
         <span class="material-symbols-outlined group-open:rotate-180 transition-transform text-[16px] flex items-center">expand_more</span>
       </summary>
-      <div class="p-sm border-t border-outline-variant font-body-md text-body-md leading-[1.7] text-on-surface whitespace-pre-wrap">
-        {{ parsedSections.formula }}
-      </div>
+      <div
+        class="markdown-content p-sm border-t border-outline-variant font-body-md text-body-md leading-[1.75] text-on-surface"
+        v-html="parsedSections.formulaHtml"
+      />
     </details>
 
     <!-- 安全提示 (可折叠且红色高亮) -->
     <details
-      v-if="parsedSections.safety"
+      v-if="parsedSections.hasSafety"
       class="group border border-outline-variant rounded-sm bg-surface-container-lowest"
       open
     >
@@ -90,9 +112,10 @@ const parsedSections = computed(() => {
         <span>【安全提示】</span>
         <span class="material-symbols-outlined group-open:rotate-180 transition-transform text-[16px] flex items-center">expand_more</span>
       </summary>
-      <div class="p-sm border-t border-outline-variant font-body-md text-body-md leading-[1.7] text-error-container whitespace-pre-wrap">
-        {{ parsedSections.safety }}
-      </div>
+      <div
+        class="markdown-content p-sm border-t border-outline-variant font-body-md text-body-md leading-[1.75] text-error-container"
+        v-html="parsedSections.safetyHtml"
+      />
     </details>
   </div>
 </template>

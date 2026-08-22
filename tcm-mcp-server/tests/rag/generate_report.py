@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +38,12 @@ from .metrics import compute_batch_metrics
 logger = logging.getLogger(__name__)
 
 DATASETS_DIR = Path(__file__).resolve().parents[1] / "datasets"
-REPORT_PATH = Path(__file__).resolve().parent / "evaluation_report.md"
+REPORT_PATH = Path(
+    os.getenv(
+        "TCM_AGENT_RAG_REPORT_PATH",
+        str(Path(__file__).resolve().parent / "evaluation_report.md"),
+    )
+).resolve()
 
 K = 5
 

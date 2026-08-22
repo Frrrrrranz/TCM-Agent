@@ -30,8 +30,8 @@ type RepoDetection = {
   rustDir: boolean
 }
 
-const GITIGNORE_COMMENT = '# MiniCode local artifacts'
-const GITIGNORE_ENTRIES = ['.mini-code/settings.local.json', '.mini-code/sessions/']
+const GITIGNORE_COMMENT = '# TCM-Agent local artifacts'
+const GITIGNORE_ENTRIES = ['.tcm-agent/settings.local.json', '.tcm-agent/sessions/']
 
 function detectRepo(cwd: string): RepoDetection {
   const pkgJson = (() => {
@@ -156,15 +156,15 @@ function frameworkNotes(d: RepoDetection): string[] {
   return lines
 }
 
-export function renderInitMiniMd(cwd: string): string {
+export function renderInitTcmAgentMd(cwd: string): string {
   const detection = detectRepo(cwd)
   const sections: string[][] = []
 
   // Header
   sections.push([
-    '# MINI.md',
+    '# TCM-AGENT.md',
     '',
-    'This file provides guidance to MiniCode when working with code in this repository.',
+    'This file provides guidance to TCM-Agent when working with code in this repository.',
     '',
   ])
 
@@ -210,8 +210,8 @@ export function renderInitMiniMd(cwd: string): string {
   sections.push([
     '## Working agreement',
     '- Prefer small, reviewable changes and keep generated bootstrap files aligned with actual repo workflows.',
-    '- Keep shared defaults in `~/.mini-code/settings.json`; reserve `.mini-code/settings.local.json` for project-local overrides.',
-    '- Do not overwrite existing `MINI.md` content automatically; update it intentionally when repo workflows change.',
+    '- Keep shared defaults in `~/.tcm-agent/settings.json`; reserve `.tcm-agent/settings.local.json` for project-local overrides.',
+    '- Do not overwrite existing `TCM-AGENT.md` content automatically; update it intentionally when repo workflows change.',
     '',
   ])
 
@@ -302,10 +302,10 @@ async function ensureGitignoreEntries(
 export async function initializeRepo(cwd: string): Promise<InitReport> {
   const artifacts: InitArtifact[] = []
 
-  const miniCodeDir = path.join(cwd, '.mini-code')
+  const tcmAgentDir = path.join(cwd, '.tcm-agent')
   artifacts.push({
-    name: '.mini-code/',
-    status: await ensureDir(miniCodeDir),
+    name: '.tcm-agent/',
+    status: await ensureDir(tcmAgentDir),
   })
 
   const gitignorePath = path.join(cwd, '.gitignore')
@@ -314,11 +314,11 @@ export async function initializeRepo(cwd: string): Promise<InitReport> {
     status: await ensureGitignoreEntries(gitignorePath),
   })
 
-  const miniMdPath = path.join(cwd, 'MINI.md')
-  const content = renderInitMiniMd(cwd)
+  const tcmAgentMdPath = path.join(cwd, 'TCM-AGENT.md')
+  const content = renderInitTcmAgentMd(cwd)
   artifacts.push({
-    name: 'MINI.md',
-    status: await writeFileIfMissing(miniMdPath, content),
+    name: 'TCM-AGENT.md',
+    status: await writeFileIfMissing(tcmAgentMdPath, content),
   })
 
   return { projectRoot: cwd, artifacts }

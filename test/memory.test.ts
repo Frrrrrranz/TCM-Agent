@@ -12,18 +12,18 @@ import {
 } from '../src/memory.js'
 
 function makeTempDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'minicode-memory-test-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'tcm-agent-memory-test-'))
 }
 
 function makeHomeDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'minicode-memory-home-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'tcm-agent-memory-home-'))
 }
 
 async function discoverTestFiles(cwd: string, homeDir = makeHomeDir()) {
   try {
     return await discoverInstructionFiles(cwd, homeDir, cwd)
   } finally {
-    if (path.basename(homeDir).startsWith('minicode-memory-home-')) {
+    if (path.basename(homeDir).startsWith('tcm-agent-memory-home-')) {
       fs.rmSync(homeDir, { recursive: true, force: true })
     }
   }
@@ -33,7 +33,7 @@ async function loadTestMemory(cwd: string, homeDir = makeHomeDir()) {
   try {
     return await loadMemory(cwd, homeDir, cwd)
   } finally {
-    if (path.basename(homeDir).startsWith('minicode-memory-home-')) {
+    if (path.basename(homeDir).startsWith('tcm-agent-memory-home-')) {
       fs.rmSync(homeDir, { recursive: true, force: true })
     }
   }
@@ -57,19 +57,6 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
-  test('finds MINI.md in cwd', async () => {
-    const dir = makeTempDir()
-    try {
-      write(dir, 'MINI.md', 'project rules')
-      const files = await discoverTestFiles(dir)
-      assert.equal(files.length, 1)
-      assert.equal(files[0].content, 'project rules')
-      assert.ok(files[0].path.endsWith('MINI.md'))
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
   test('finds TCM-AGENT.md in cwd', async () => {
     const dir = makeTempDir()
     try {
@@ -83,10 +70,10 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
-  test('finds MINI.local.md in cwd', async () => {
+  test('finds TCM-AGENT.local.md in cwd', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.local.md', 'local rules')
+      write(dir, 'TCM-AGENT.local.md', 'local rules')
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 1)
       assert.equal(files[0].content, 'local rules')
@@ -95,13 +82,13 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
-  test('finds .mini-code/MINI.md', async () => {
+  test('finds .tcm-agent/TCM-AGENT.md', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, '.mini-code/MINI.md', 'mini-code instructions')
+      write(dir, '.tcm-agent/TCM-AGENT.md', 'tcm-agent instructions')
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 1)
-      assert.equal(files[0].content, 'mini-code instructions')
+      assert.equal(files[0].content, 'tcm-agent instructions')
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
@@ -148,8 +135,8 @@ describe('discoverInstructionFiles', () => {
     const child = path.join(root, 'apps', 'web')
     fs.mkdirSync(child, { recursive: true })
     try {
-      write(root, 'MINI.md', 'root rules')
-      write(child, 'MINI.md', 'child rules')
+      write(root, 'TCM-AGENT.md', 'root rules')
+      write(child, 'TCM-AGENT.md', 'child rules')
       const files = await discoverInstructionFiles(child, makeHomeDir(), root)
       assert.equal(files.length, 2)
       // root first, then child
@@ -165,8 +152,8 @@ describe('discoverInstructionFiles', () => {
     const child = path.join(root, 'apps', 'web')
     fs.mkdirSync(child, { recursive: true })
     try {
-      write(root, 'MINI.md', 'same rules')
-      write(child, 'MINI.md', 'same rules')
+      write(root, 'TCM-AGENT.md', 'same rules')
+      write(child, 'TCM-AGENT.md', 'same rules')
       const files = await discoverInstructionFiles(child, makeHomeDir(), root)
       assert.equal(files.length, 1)
       // keeps the one closer to cwd (child)
@@ -179,7 +166,7 @@ describe('discoverInstructionFiles', () => {
   test('skips empty files', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', '   \n\n  ')
+      write(dir, 'TCM-AGENT.md', '   \n\n  ')
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 0)
     } finally {
@@ -187,55 +174,55 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
-  test('loads user global MINI.md from home directory', async () => {
+  test('loads user global TCM-AGENT.md from home directory', async () => {
     const dir = makeTempDir()
-    const miniCodeHome = makeTempDir()
+    const tcmAgentHome = makeTempDir()
     try {
-      write(miniCodeHome, 'MINI.md', 'global rules')
-      const files = await discoverInstructionFiles(dir, miniCodeHome, dir)
+      write(tcmAgentHome, 'TCM-AGENT.md', 'global rules')
+      const files = await discoverInstructionFiles(dir, tcmAgentHome, dir)
       const globalFile = files.find(f => f.content === 'global rules')
       assert.ok(globalFile)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
-      fs.rmSync(miniCodeHome, { recursive: true, force: true })
+      fs.rmSync(tcmAgentHome, { recursive: true, force: true })
     }
   })
 
   test('global loaded before project files', async () => {
     const dir = makeTempDir()
-    const miniCodeHome = makeTempDir()
+    const tcmAgentHome = makeTempDir()
     try {
-      write(miniCodeHome, 'MINI.md', 'global rules')
-      write(dir, 'MINI.md', 'project rules')
-      const files = await discoverInstructionFiles(dir, miniCodeHome, dir)
+      write(tcmAgentHome, 'TCM-AGENT.md', 'global rules')
+      write(dir, 'TCM-AGENT.md', 'project rules')
+      const files = await discoverInstructionFiles(dir, tcmAgentHome, dir)
       assert.equal(files.length, 2)
       assert.equal(files[0].content, 'global rules')
       assert.equal(files[1].content, 'project rules')
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
-      fs.rmSync(miniCodeHome, { recursive: true, force: true })
+      fs.rmSync(tcmAgentHome, { recursive: true, force: true })
     }
   })
 
-  test('MINI.md takes priority over CLAUDE.md in same directory', async () => {
+  test('TCM-AGENT.md takes priority over CLAUDE.md in same directory', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', 'mini rules')
+      write(dir, 'TCM-AGENT.md', 'tcm rules')
       write(dir, 'CLAUDE.md', 'claude rules')
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 2)
-      assert.equal(files[0].content, 'mini rules')
+      assert.equal(files[0].content, 'tcm rules')
       assert.equal(files[1].content, 'claude rules')
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
   })
 
-  test('MINI.local.md loaded after MINI.md in same directory', async () => {
+  test('TCM-AGENT.local.md loaded after TCM-AGENT.md in same directory', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', 'shared rules')
-      write(dir, 'MINI.local.md', 'local rules')
+      write(dir, 'TCM-AGENT.md', 'shared rules')
+      write(dir, 'TCM-AGENT.local.md', 'local rules')
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 2)
       assert.equal(files[0].content, 'shared rules')
@@ -245,13 +232,13 @@ describe('discoverInstructionFiles', () => {
     }
   })
 
-  test('discovers .mini-code/rules/*.md files sorted by filename', async () => {
+  test('discovers .tcm-agent/rules/*.md files sorted by filename', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, '.mini-code/rules/testing.md', 'testing rules')
-      write(dir, '.mini-code/rules/typescript.md', 'typescript rules')
-      write(dir, '.mini-code/rules/ignore.txt', 'ignored')
-      write(dir, '.mini-code/rules/a-first.md', 'first rules')
+      write(dir, '.tcm-agent/rules/testing.md', 'testing rules')
+      write(dir, '.tcm-agent/rules/typescript.md', 'typescript rules')
+      write(dir, '.tcm-agent/rules/ignore.txt', 'ignored')
+      write(dir, '.tcm-agent/rules/a-first.md', 'first rules')
 
       const files = await discoverTestFiles(dir)
       assert.deepEqual(files.map(f => path.basename(f.path)), [
@@ -283,8 +270,8 @@ describe('discoverInstructionFiles', () => {
   test('loads rules after directory instruction files', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', 'project rules')
-      write(dir, '.mini-code/rules/testing.md', 'testing rules')
+      write(dir, 'TCM-AGENT.md', 'project rules')
+      write(dir, '.tcm-agent/rules/testing.md', 'testing rules')
 
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 2)
@@ -298,7 +285,7 @@ describe('discoverInstructionFiles', () => {
   test('resolves @path includes relative to the source file', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', 'before\n@docs/workflow.md\nafter')
+      write(dir, 'TCM-AGENT.md', 'before\n@docs/workflow.md\nafter')
       write(dir, 'docs/workflow.md', 'workflow rules')
 
       const files = await discoverTestFiles(dir)
@@ -315,7 +302,7 @@ describe('discoverInstructionFiles', () => {
   test('resolves nested includes and skips cycles', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', '@a.md')
+      write(dir, 'TCM-AGENT.md', '@a.md')
       write(dir, 'a.md', 'a\n@b.md')
       write(dir, 'b.md', 'b\n@a.md')
 
@@ -333,7 +320,7 @@ describe('discoverInstructionFiles', () => {
     const dir = makeTempDir()
     try {
       const absoluteRef = path.join(dir, 'absolute.md')
-      write(dir, 'MINI.md', `@../outside.md\n@missing.md\n@${absoluteRef}`)
+      write(dir, 'TCM-AGENT.md', `@../outside.md\n@missing.md\n@${absoluteRef}`)
 
       const files = await discoverTestFiles(dir)
       assert.equal(files.length, 1)
@@ -350,7 +337,7 @@ describe('memory report', () => {
   test('describes files with scope and preview', () => {
     const dir = makeTempDir()
     try {
-      const filePath = write(dir, '.mini-code/rules/testing.md', '# Testing\nUse tests')
+      const filePath = write(dir, '.tcm-agent/rules/testing.md', '# Testing\nUse tests')
       const infos = describeMemoryFiles([{ path: filePath, content: '# Testing\nUse tests' }], dir)
       assert.equal(infos[0].scope, 'rules')
       assert.equal(infos[0].lineCount, 2)
@@ -362,7 +349,7 @@ describe('memory report', () => {
 
   test('renders /memory report', () => {
     const result = renderMemoryReport([
-      { path: 'MINI.md', content: '# Project\nRules' },
+      { path: 'TCM-AGENT.md', content: '# Project\nRules' },
     ])
     assert.ok(result.includes('Memory files loaded: 1'))
     assert.ok(result.includes('scope: project'))
@@ -384,10 +371,10 @@ describe('loadMemory', () => {
   test('renders instruction files with scope', async () => {
     const dir = makeTempDir()
     try {
-      write(dir, 'MINI.md', 'project rules')
+      write(dir, 'TCM-AGENT.md', 'project rules')
       const result = await loadTestMemory(dir)
       assert.ok(result.includes('project rules'))
-      assert.ok(result.includes('MINI.md'))
+      assert.ok(result.includes('TCM-AGENT.md'))
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
@@ -397,7 +384,7 @@ describe('loadMemory', () => {
     const dir = makeTempDir()
     try {
       const longContent = 'x'.repeat(10_000)
-      write(dir, 'MINI.md', longContent)
+      write(dir, 'TCM-AGENT.md', longContent)
       const result = await loadTestMemory(dir)
       assert.ok(result.includes('[truncated]'))
       // total should not include the full 10k
@@ -412,8 +399,8 @@ describe('loadMemory', () => {
     const child = path.join(root, 'apps', 'web')
     fs.mkdirSync(child, { recursive: true })
     try {
-      write(root, 'MINI.md', 'a'.repeat(12_000))
-      write(child, 'MINI.md', 'b'.repeat(12_000))
+      write(root, 'TCM-AGENT.md', 'a'.repeat(12_000))
+      write(child, 'TCM-AGENT.md', 'b'.repeat(12_000))
       // Call from child so upward walk finds both root and child
       const result = await loadMemory(child, makeHomeDir(), root)
       assert.ok(result.length < 30_000)

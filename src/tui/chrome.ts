@@ -323,7 +323,7 @@ export function renderBanner(
   const metaLine = joinSegmentsWithinWidth(metaBadges, '  ', panelInner)
 
   return renderPanel(
-    'MiniCode',
+    'TCM-Agent',
     [
       `${DIM}Terminal coding assistant with a card-style session layout.${RESET}`,
       '',

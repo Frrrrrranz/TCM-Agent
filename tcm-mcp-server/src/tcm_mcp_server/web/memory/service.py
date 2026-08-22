@@ -81,9 +81,13 @@ class SessionMemoryService:
         return context
 
     @staticmethod
-    def start_run(session_id: str, user_content: str) -> str:
+    def start_run(
+        session_id: str,
+        user_content: str,
+        run_id: Optional[str] = None,
+    ) -> str:
         """在会话中开启新的一轮对话，返回 request_id。"""
-        run_id = str(uuid4())
+        run_id = run_id or str(uuid4())
         now = datetime.now().isoformat()
         try:
             with get_connection() as conn:
@@ -94,6 +98,19 @@ class SessionMemoryService:
         except Exception as exc:
             logger.warning("Session Memory 记录开始轮次失败 (Fail-Open): %s", exc)
         return run_id
+
+    @staticmethod
+    def cancel_run(run_id: str, session_id: str) -> None:
+        """Persist an interrupted run without making it part of successful history."""
+        now = datetime.now().isoformat()
+        try:
+            with get_connection() as conn:
+                RunRepository.update_run(conn, run_id, "", None, "cancelled")
+                session = SessionRepository.get_session(conn, session_id)
+                run_count = session.run_count if session else 0
+                SessionRepository.update_session(conn, session_id, None, run_count, now)
+        except Exception as exc:
+            logger.warning("Session Memory cancellation persistence failed (Fail-Open): %s", exc)
 
     @staticmethod
     def finish_run(run_id: str, session_id: str, assistant_content: str, tool_calls: List[dict[str, Any]]) -> None:

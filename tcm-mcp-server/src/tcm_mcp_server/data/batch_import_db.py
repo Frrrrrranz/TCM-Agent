@@ -18,6 +18,7 @@ from .parse_formula_xlsx import parse_formula_xlsx
 from .parse_herb_xlsx import parse_herb_xlsx
 from .parse_tcmbank_xlsx import parse_tcmbank_xlsx
 from .schema import HerbIngestionRecord, PrescriptionIngestionRecord
+from .paths import get_data_paths
 
 logger = logging.getLogger(__name__)
 
@@ -224,11 +225,11 @@ def main() -> None:
     )
 
     # 默认路径基于脚本位置推导
-    default_data_dir = Path(__file__).resolve().parent.parent.parent / "data"
-    default_db_dir = default_data_dir.parent.parent.parent.parent / "DB"  # TCM-Agent/../../
-    default_db = default_data_dir / "tcm.db"
-    default_review = default_data_dir / "review_queue"
-    default_summary = default_data_dir / "batch_import_summary.json"
+    paths = get_data_paths()
+    default_db_dir = paths.source_dir
+    default_db = paths.db_path
+    default_review = paths.review_dir
+    default_summary = paths.summary_path
 
     parser = argparse.ArgumentParser(description="批量导入 DB/ 数据到 SQLite")
     parser.add_argument("--db-path", default=str(default_db), help="SQLite 数据库路径")

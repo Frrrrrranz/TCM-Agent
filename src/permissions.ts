@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { MINI_CODE_DIR } from './config.js'
+import { TCM_AGENT_DIR } from './config.js'
 import { isEnoentError } from './utils/errors.js'
 
 export type PermissionDecision =
@@ -50,7 +50,7 @@ type PermissionStore = {
 
 type PathIntent = 'read' | 'write' | 'list' | 'search' | 'command_cwd'
 
-const PERMISSIONS_PATH = path.join(MINI_CODE_DIR, 'permissions.json')
+const PERMISSIONS_PATH = path.join(TCM_AGENT_DIR, 'permissions.json')
 
 function normalizePath(targetPath: string): string {
   return path.resolve(targetPath)
@@ -149,7 +149,7 @@ async function readPermissionStore(): Promise<PermissionStore> {
 }
 
 async function writePermissionStore(store: PermissionStore): Promise<void> {
-  await mkdir(MINI_CODE_DIR, { recursive: true })
+  await mkdir(TCM_AGENT_DIR, { recursive: true })
   await writeFile(PERMISSIONS_PATH, `${JSON.stringify(store, null, 2)}\n`, 'utf8')
 }
 
@@ -282,7 +282,7 @@ export class PermissionManager {
 
     if (!this.prompt) {
       throw new Error(
-        `Path ${normalizedTarget} is outside cwd ${this.workspaceRoot}. Start minicode in TTY mode to approve it.`,
+        `Path ${normalizedTarget} is outside cwd ${this.workspaceRoot}. Start tcm-agent in TTY mode to approve it.`,
       )
     }
 
@@ -293,7 +293,7 @@ export class PermissionManager {
 
     const promptResult = await this.prompt({
       kind: 'path',
-      summary: `mini-code wants ${intent.replace('_', ' ')} access outside the current cwd`,
+      summary: `tcm-agent wants ${intent.replace('_', ' ')} access outside the current cwd`,
       details: [
         `cwd: ${this.workspaceRoot}`,
         `target: ${normalizedTarget}`,
@@ -362,15 +362,15 @@ export class PermissionManager {
 
     if (!this.prompt) {
       throw new Error(
-        `Command requires approval: ${signature}. Start minicode in TTY mode to approve it.`,
+        `Command requires approval: ${signature}. Start tcm-agent in TTY mode to approve it.`,
       )
     }
 
     const promptResult = await this.prompt({
       kind: 'command',
       summary: options?.forcePromptReason
-        ? 'mini-code wants approval for this command'
-        : 'mini-code wants to run a dangerous command',
+        ? 'tcm-agent wants approval for this command'
+        : 'tcm-agent wants to run a dangerous command',
       details: [
         `cwd: ${commandCwd}`,
         `command: ${signature}`,
@@ -429,13 +429,13 @@ export class PermissionManager {
 
     if (!this.prompt) {
       throw new Error(
-        `Edit requires approval: ${normalizedTarget}. Start minicode in TTY mode to review it.`,
+        `Edit requires approval: ${normalizedTarget}. Start tcm-agent in TTY mode to review it.`,
       )
     }
 
     const promptResult = await this.prompt({
       kind: 'edit',
-      summary: 'mini-code wants to apply a file modification',
+      summary: 'tcm-agent wants to apply a file modification',
       details: [
         `target: ${normalizedTarget}`,
         '',

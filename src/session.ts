@@ -9,7 +9,7 @@ import {
 } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { MINI_CODE_PROJECTS_DIR } from './config.js'
+import { TCM_AGENT_PROJECTS_DIR } from './config.js'
 import type { ChatMessage } from './types.js'
 import {
   createContextCollapseState,
@@ -51,7 +51,7 @@ function projectDirName(cwd: string): string {
 }
 
 function projectDir(cwd: string): string {
-  return path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+  return path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
 }
 
 function sessionFilePath(cwd: string, sessionId: string): string {
@@ -602,14 +602,14 @@ export type ProjectMeta = {
 export async function listAllProjects(): Promise<ProjectMeta[]> {
   let entries: string[]
   try {
-    entries = await readdir(MINI_CODE_PROJECTS_DIR)
+    entries = await readdir(TCM_AGENT_PROJECTS_DIR)
   } catch {
     return []
   }
 
   const results: ProjectMeta[] = []
   for (const name of entries) {
-    const dirPath = path.join(MINI_CODE_PROJECTS_DIR, name)
+    const dirPath = path.join(TCM_AGENT_PROJECTS_DIR, name)
     try {
       const stats = await stat(dirPath)
       if (!stats.isDirectory()) continue

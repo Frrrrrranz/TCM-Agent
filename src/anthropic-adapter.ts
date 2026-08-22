@@ -40,7 +40,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 function getRetryLimit(): number {
-  const value = Number(process.env.MINI_CODE_MAX_RETRIES)
+  const value = Number(process.env.TCM_AGENT_MAX_RETRIES)
   if (!Number.isFinite(value) || value < 0) {
     return DEFAULT_MAX_RETRIES
   }

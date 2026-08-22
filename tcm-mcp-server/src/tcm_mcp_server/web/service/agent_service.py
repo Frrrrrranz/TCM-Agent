@@ -8,6 +8,7 @@ import time
 import asyncio
 import subprocess
 import threading
+import shutil
 from pathlib import Path
 from typing import AsyncGenerator, Any, Optional
 from queue import Queue, Empty
@@ -26,7 +27,7 @@ def find_node_project_dir() -> Path:
             try:
                 with open(pkg_json, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    if data.get("name") == "mini-code":
+                    if data.get("name") == "tcm-agent":
                         return current
             except Exception:
                 pass
@@ -88,7 +89,18 @@ class AgentService:
                 )
 
             # 在 Windows 上 npm 是 .cmd 脚本，必须通过 shell 启动
-            cmd = "npm run dev -- --json-mode"
+            npm_command = shutil.which("npm.cmd" if os.name == "nt" else "npm")
+            if not npm_command:
+                return WebSocketMessage(type="error", content="node_runtime_not_found")
+            cmd = [
+                npm_command,
+                "run",
+                "dev",
+                "--",
+                "--json-mode",
+                "--tool-profile",
+                "tcm-consultation",
+            ]
 
             logger.info(
                 "启动 Node.js Agent 长驻子进程。工作目录: %s, 运行命令: %s",
@@ -107,7 +119,7 @@ class AgentService:
                     stderr=subprocess.STDOUT,  # 将 stderr 合并到 stdout，由读取线程流式处理，防止 Windows 阻塞并增强诊断
                     cwd=str(NODE_PROJECT_DIR),
                     env=env,
-                    shell=True,
+                    shell=False,
                 )
             except Exception as exc:
                 logger.exception("启动 Node.js 进程发生严重异常")
@@ -126,7 +138,7 @@ class AgentService:
             self._reader_thread.start()
 
         # 异步等待 init 帧，跳过 npm 启动时输出的非 JSON banner 行
-        # NOTE: npm run dev 会先输出 "> mini-code@0.1.0 dev" 等信息，不是 JSON
+        # NOTE: npm run dev 会先输出 "> tcm-agent@0.1.0 dev" 等信息，不是 JSON
         deadline = time.monotonic() + 15.0
         try:
             while time.monotonic() < deadline:
@@ -217,11 +229,13 @@ class AgentService:
 
         # 构建并发送交互负载到 stdin
         payload: dict[str, Any] = {
+            "protocolVersion": 1,
             "type": "user_message",
-            "content": user_content
+            "sessionId": session_id or "unknown-session",
+            "requestId": request_id or "unknown-request",
+            "sequence": 0,
+            "content": user_content,
         }
-        if history:
-            payload["history"] = history
         if history_context:
             payload["history_context"] = history_context
 
@@ -267,7 +281,7 @@ class AgentService:
 
                 try:
                     data = json.loads(line)
-                    msg = WebSocketMessage(**data)
+                    msg = WebSocketMessage.model_validate(data)
                     
                     # 动态灌入会话与请求标识，回传给前端
                     msg.session_id = session_id
@@ -337,6 +351,10 @@ class AgentService:
         """关闭 Node.js 长驻子进程，释放系统资源。"""
         self._kill_process_sync()
 
+    async def cancel_turn(self) -> None:
+        """Cancel the active turn and recycle the process before the next request."""
+        await asyncio.to_thread(self._kill_process_sync)
+
     def _kill_process_sync(self) -> None:
         """安全终止子进程并回收资源（同步方法）。"""
         if self._process is None:
@@ -354,5 +372,3 @@ class AgentService:
             logger.error("终止 Node.js Agent 进程资源失败: %s", exc)
         finally:
             self._process = None
-
-

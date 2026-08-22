@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { TCM_AGENT_DIR } from './config.js'
 import { isEnoentError } from './utils/errors.js'
 
 export type SkillSummary = {
@@ -53,11 +54,7 @@ function getSkillRoots(cwd: string): SkillSourceRoot[] {
       source: 'project',
     },
     {
-      root: path.join(cwd, '.mini-code', 'skills'),
-      source: 'compat_project',
-    },
-    {
-      root: path.join(os.homedir(), '.mini-code', 'skills'),
+      root: path.join(TCM_AGENT_DIR, 'skills'),
       source: 'user',
     },
     {
@@ -74,7 +71,7 @@ function getSkillRoots(cwd: string): SkillSourceRoot[] {
 function getManagedSkillRoot(scope: SkillScope, cwd: string): string {
   return scope === 'project'
     ? path.join(cwd, '.tcm-agent', 'skills')
-    : path.join(os.homedir(), '.mini-code', 'skills')
+    : path.join(TCM_AGENT_DIR, 'skills')
 }
 
 async function listSkillDirs(root: SkillSourceRoot): Promise<LoadedSkill[]> {

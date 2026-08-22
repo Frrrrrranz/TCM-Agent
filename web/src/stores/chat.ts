@@ -26,6 +26,23 @@ export interface Message {
   }
 }
 
+interface WebSocketFrame {
+  protocolVersion: 1
+  type: string
+  sessionId?: string
+  requestId?: string
+  sequence: number
+  toolUseId?: string
+  content?: string
+  toolName?: string
+  input?: unknown
+  output?: string
+  isError?: boolean
+  messages?: Message[]
+  modelName?: string
+  streaming?: boolean
+}
+
 export interface Session {
   id: string
   title: string
@@ -45,6 +62,7 @@ export const useChatStore = defineStore('chat', () => {
   const tokensLimit = ref<number>(200000)
 
   const socket = ref<WebSocket | null>(null)
+  let outgoingSequence = 0
   
   const currentSession = computed(() => {
     return sessions.value.find((s) => s.id === activeSessionId.value)
@@ -93,7 +111,8 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     // 后端默认运行于 8000 端口
-    const wsUrl = `ws://${window.location.hostname}:8000/ws/chat`
+    outgoingSequence = 0
+    const wsUrl = `ws://${window.location.hostname}:8000/ws/chat?session_id=${encodeURIComponent(activeSessionId.value)}`
     const ws = new WebSocket(wsUrl)
     socket.value = ws
 
@@ -123,12 +142,17 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function sendPayload(content: string, history: Message[]) {
+  function sendPayload(content: string) {
     if (!socket.value || socket.value.readyState !== WebSocket.OPEN) return
+    const requestId = crypto.randomUUID()
     socket.value.send(
       JSON.stringify({
+        protocolVersion: 1,
+        type: 'user_message',
+        sessionId: activeSessionId.value,
+        requestId,
+        sequence: outgoingSequence++,
         content,
-        history,
       })
     )
   }
@@ -153,34 +177,36 @@ export const useChatStore = defineStore('chat', () => {
     isGenerating.value = true
 
     // 3. 构建发送历史（剔除 system 角色以减少网络开销）
-    const historyPayload = session.messages.filter((m) => m.role !== 'system')
-
     // 4. 发送 WebSocket，如果连接未就绪则初始化后发送
     if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
       initWebSocket(() => {
-        sendPayload(text, historyPayload)
+        sendPayload(text)
       })
     } else {
-      sendPayload(text, historyPayload)
+      sendPayload(text)
     }
   }
 
-  function handleStreamMessage(data: any) {
+  function handleStreamMessage(data: unknown) {
+    if (!data || typeof data !== 'object' || !('type' in data)) return
+    const frame = data as WebSocketFrame
+    if (frame.protocolVersion !== 1 || typeof frame.sequence !== 'number') return
     const session = currentSession.value
     if (!session) return
 
-    switch (data.type) {
+    switch (frame.type) {
       case 'init':
         // 初始化时设置模型名称
-        modelName.value = data.modelName
+        modelName.value = frame.modelName || modelName.value
         break
 
       case 'tool_start':
         // 添加工具调用中药丸
         session.messages.push({
           role: 'assistant_tool_call',
-          toolName: data.toolName,
-          input: data.input,
+          toolUseId: frame.toolUseId,
+          toolName: frame.toolName,
+          input: frame.input,
           isError: false,
         })
         break
@@ -189,9 +215,10 @@ export const useChatStore = defineStore('chat', () => {
         // 添加工具调用结果
         session.messages.push({
           role: 'tool_result',
-          toolName: data.toolName,
-          output: data.output,
-          isError: data.isError,
+          toolUseId: frame.toolUseId,
+          toolName: frame.toolName,
+          output: frame.output,
+          isError: frame.isError,
         })
         break
 
@@ -199,7 +226,7 @@ export const useChatStore = defineStore('chat', () => {
         // AI 产生的流式中间状态进度
         session.messages.push({
           role: 'assistant_progress',
-          content: data.content,
+          content: frame.content,
         })
         break
 
@@ -207,11 +234,11 @@ export const useChatStore = defineStore('chat', () => {
         // AI 流式生成文本响应，直接拼接到最后一个 assistant 消息
         const lastMsg = session.messages[session.messages.length - 1]
         if (lastMsg && lastMsg.role === 'assistant') {
-          lastMsg.content = (lastMsg.content || '') + data.content
+          lastMsg.content = (lastMsg.content || '') + (frame.content || '')
         } else {
           session.messages.push({
             role: 'assistant',
-            content: data.content,
+            content: frame.content,
           })
         }
         break
@@ -219,9 +246,9 @@ export const useChatStore = defineStore('chat', () => {
 
       case 'turn_complete':
         // 渲染结束，利用后端最标准的 messages 对话链覆盖同步
-        if (data.messages && data.messages.length > 0) {
+        if (frame.messages && frame.messages.length > 0) {
           // 在覆盖时保留 system 角色，并提取 token 消耗
-          const cleanMsgs = data.messages
+          const cleanMsgs = frame.messages
           
           // 保留系统初始进度
           const initProgress = session.messages.filter(
@@ -231,9 +258,9 @@ export const useChatStore = defineStore('chat', () => {
           session.messages = [...initProgress, ...cleanMsgs]
 
           // 提取 token 统计信息
-          const lastAssistant = [...data.messages]
+          const lastAssistant = [...frame.messages]
             .reverse()
-            .find((m: any) => m.role === 'assistant' && m.providerUsage)
+            .find((m) => m.role === 'assistant' && m.providerUsage)
           if (lastAssistant && lastAssistant.providerUsage) {
             tokensUsed.value = lastAssistant.providerUsage.totalTokens || tokensUsed.value
           }
@@ -245,7 +272,7 @@ export const useChatStore = defineStore('chat', () => {
         // 处理运行错误
         session.messages.push({
           role: 'assistant',
-          content: `⚠️ [系统错误] ${data.content}`,
+          content: `⚠️ [系统错误] ${frame.content || 'unknown_error'}`,
           isError: true,
         })
         isGenerating.value = false

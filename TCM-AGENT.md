@@ -77,7 +77,7 @@
 | 中药知识问答 | `0.7` | 允许适度发挥，增强回答的可读性 |
 | 医案分析与学习 | `0.5` | 兼顾分析深度与表达多样性 |
 
-通过环境变量 `TCM_TEMPERATURE` 或 `~/.mini-code/settings.json` 中的 `temperature` 字段配置。
+通过环境变量 `TCM_TEMPERATURE` 或 `~/.tcm-agent/settings.json` 中的 `temperature` 字段配置。
 
 ### 结构化输出约束
 

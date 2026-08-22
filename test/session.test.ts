@@ -18,7 +18,7 @@ import {
   cleanupExpiredSessions,
   listAllProjects,
 } from '../src/session.js'
-import { MINI_CODE_PROJECTS_DIR } from '../src/config.js'
+import { TCM_AGENT_PROJECTS_DIR } from '../src/config.js'
 import type { AgentStep, ChatMessage, ModelAdapter } from '../src/types.js'
 import type { ContextStats } from '../src/utils/token-estimator.js'
 import {
@@ -29,7 +29,7 @@ import { snipCompactConversation } from '../src/compact/snipCompact.js'
 import { compactConversation } from '../src/compact/compact.js'
 import type { CollapseSpan } from '../src/compact/context-collapse.js'
 
-const testDir = path.join(os.tmpdir(), 'minicode-session-test')
+const testDir = path.join(os.tmpdir(), 'tcm-agent-session-test')
 
 function makeMessages(count: number): ChatMessage[] {
   const messages: ChatMessage[] = [
@@ -101,7 +101,7 @@ function retainedMessagesAfterCompact(
 }
 
 async function cleanupAll() {
-  try { await rm(MINI_CODE_PROJECTS_DIR, { recursive: true, force: true }) } catch {}
+  try { await rm(TCM_AGENT_PROJECTS_DIR, { recursive: true, force: true }) } catch {}
 }
 
 describe('session persistence', () => {
@@ -183,7 +183,7 @@ describe('session persistence', () => {
     const cwd = path.join(testDir, 'envelope-check')
     await saveSession(cwd, 'env0001', makeMessages(1))
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const filePath = path.join(pdir, 'env0001.jsonl')
     const content = await readFile(filePath, 'utf8')
     const lines = content.trim().split('\n').filter(Boolean)
@@ -202,7 +202,7 @@ describe('session persistence', () => {
     const cwd = path.join(testDir, 'my-cool-project')
     await saveSession(cwd, 'path001', makeMessages(1))
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const filePath = path.join(pdir, 'path001.jsonl')
     const content = await readFile(filePath, 'utf8')
     assert.ok(content.length > 0)
@@ -227,7 +227,7 @@ describe('session persistence', () => {
     assert.equal(loaded![3].content, 'extra assistant')
 
     // Verify file has exactly 4 event lines (no duplicates)
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const content = await readFile(path.join(pdir, 'append001.jsonl'), 'utf8')
     assert.equal(content.trim().split('\n').filter(Boolean).length, 4)
   })
@@ -313,7 +313,7 @@ describe('session persistence', () => {
 
     await appendCompactBoundary(cwd, 'cmp001', 'Summary of previous context', 'auto', 100000, 5000)
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const content = await readFile(path.join(pdir, 'cmp001.jsonl'), 'utf8')
     const lines = content.trim().split('\n').filter(Boolean)
 
@@ -375,7 +375,7 @@ describe('session persistence', () => {
       timestamp: 12345,
     })
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const content = await readFile(path.join(pdir, 'snip001.jsonl'), 'utf8')
     const snipEvent = content
       .trim()
@@ -557,7 +557,7 @@ describe('session persistence', () => {
     const cwd = path.join(testDir, 'parent-chain')
     await saveSession(cwd, 'chain001', makeMessages(2), 0)
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const content = await readFile(path.join(pdir, 'chain001.jsonl'), 'utf8')
     const lines = content.trim().split('\n').filter(Boolean)
 
@@ -583,7 +583,7 @@ describe('session persistence', () => {
     const msgs1 = makeMessages(1)
     await saveSession(cwd, 'append001', msgs1, 0)
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     let content = await readFile(path.join(pdir, 'append001.jsonl'), 'utf8')
     let lines = content.trim().split('\n').filter(Boolean)
     const lastUuidOfFirstBatch = JSON.parse(lines[lines.length - 1]!).uuid
@@ -611,7 +611,7 @@ describe('session persistence', () => {
     const cwd = path.join(testDir, 'parent-compact')
     await saveSession(cwd, 'cmpch001', makeMessages(1), 0)
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     let content = await readFile(path.join(pdir, 'cmpch001.jsonl'), 'utf8')
     let lines = content.trim().split('\n').filter(Boolean)
     const lastEventUuid = JSON.parse(lines[lines.length - 1]!).uuid
@@ -684,7 +684,7 @@ describe('session persistence', () => {
 
     const forkId = await forkSession(cwd, 'orig003')
 
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const content = await readFile(path.join(pdir, `${forkId}.jsonl`), 'utf8')
     const lines = content.trim().split('\n').filter(Boolean)
     const events = lines.map(l => JSON.parse(l!))
@@ -745,7 +745,7 @@ describe('session persistence', () => {
     await saveSession(cwd, 'recent002', makeMessages(1))
 
     // Make old001's file mtime old by touching it to past
-    const pdir = path.join(MINI_CODE_PROJECTS_DIR, projectDirName(cwd))
+    const pdir = path.join(TCM_AGENT_PROJECTS_DIR, projectDirName(cwd))
     const oldPath = path.join(pdir, 'old001.jsonl')
     await saveSession(cwd, 'old001', makeMessages(1))
     // Set mtime to 31 days ago

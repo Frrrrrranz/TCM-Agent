@@ -2,14 +2,14 @@ import sqlite3
 import logging
 from pathlib import Path
 from contextlib import contextmanager
+from ...data.paths import get_data_paths
 
 logger = logging.getLogger(__name__)
 
 def get_db_path() -> Path:
     # 位于 src/tcm_mcp_server/web/memory/db.py
     # 往上数 4 级：memory -> web -> tcm_mcp_server -> src -> tcm-mcp-server
-    base_dir = Path(__file__).resolve().parents[4]
-    data_dir = base_dir / "data"
+    data_dir = get_data_paths().data_dir
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir / "memory.db"
 

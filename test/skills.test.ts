@@ -6,7 +6,7 @@ import path from 'node:path'
 import { discoverSkills, loadSkill } from '../src/skills.js'
 
 function makeTempDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'minicode-skills-test-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'tcm-agent-skills-test-'))
 }
 
 function writeSkill(root: string, name: string, content: string): string {

@@ -8,8 +8,11 @@ Query 改写 → 向量检索 → 重排序 → 结构化补全 → 结果组装
 from __future__ import annotations
 
 import logging
+from hashlib import sha256
 from typing import Optional
 
+from ..mcp_response import McpEvidenceItem
+from ..models.acupoint import AcupointSearchParams
 from .retriever import HybridRetriever
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,125 @@ class RAGPipeline:
             retriever: 混合检索引擎实例
         """
         self.retriever = retriever
+
+    @staticmethod
+    def _record_evidence(
+        record: object,
+        retrieval_method: str,
+        retrieval_score: float | None = None,
+    ) -> McpEvidenceItem:
+        values = record.model_dump() if hasattr(record, "model_dump") else dict(record)
+        name = str(values.get("name") or values.get("title") or "record")
+        source_text = str(
+            values.get("source_text")
+            or values.get("source")
+            or values.get("document")
+            or name
+        )
+        raw_hash = str(values.get("source_hash") or "")
+        source_hash = (
+            raw_hash
+            if len(raw_hash) == 64
+            else sha256(source_text.encode("utf-8")).hexdigest()
+        )
+        source = str(
+            values.get("source_file")
+            or values.get("source")
+            or "tcm-mcp-server"
+        )
+        dataset_version = str(
+            values.get("dataset_version")
+            or values.get("parser_version")
+            or "seed-v1"
+        )
+        record_id = str(values.get("id") or values.get("record_id") or source_hash[:16])
+        title = str(values.get("source_heading") or name)
+        return McpEvidenceItem(
+            evidence_id=f"db:{record_id}:{source_hash[:24]}",
+            source=source,
+            title=title,
+            source_hash=source_hash,
+            dataset_version=dataset_version,
+            retrieval_method=retrieval_method,
+            retrieval_score=retrieval_score,
+            excerpt=source_text[:5000],
+        )
+
+    def evidence_for(
+        self,
+        tool_name: str,
+        arguments: dict[str, object],
+    ) -> list[McpEvidenceItem]:
+        """Return row-level evidence for tools backed by traceable records."""
+        if tool_name == "tcm_search_herb":
+            records = self.retriever.search_herbs(
+                name=arguments.get("name"),
+                nature=arguments.get("nature"),
+                taste=arguments.get("taste"),
+                meridian=arguments.get("meridian"),
+                keywords=arguments.get("keywords"),
+            )
+            method = "exact" if arguments.get("name") else "hybrid"
+            return [self._record_evidence(record, method) for record in records]
+
+        if tool_name == "tcm_search_prescription":
+            records = self.retriever.search_prescriptions(
+                name=arguments.get("name"),
+                syndrome=arguments.get("syndrome"),
+                symptoms=arguments.get("symptoms"),
+                herbs=arguments.get("herbs"),
+            )
+            method = "exact" if arguments.get("name") else "hybrid"
+            return [self._record_evidence(record, method) for record in records]
+
+        if tool_name == "tcm_diagnosis_syndrome":
+            results = self.retriever.search_syndromes(
+                symptoms=list(arguments.get("symptoms") or []),
+                tongue=arguments.get("tongue"),
+                pulse=arguments.get("pulse"),
+            )
+            return [
+                self._record_evidence(
+                    result["syndrome"],
+                    "vector",
+                    result.get("confidence"),
+                )
+                for result in results
+            ]
+
+        if tool_name == "tcm_acupoint_search":
+            records = self.retriever.db.search_acupoints(
+                AcupointSearchParams(
+                    name=arguments.get("name"),
+                    meridian=arguments.get("meridian"),
+                    keywords=arguments.get("keywords"),
+                )
+            )
+            method = "exact" if arguments.get("name") else "keyword"
+            return [self._record_evidence(record, method) for record in records]
+
+        if tool_name == "tcm_classic_case_search":
+            query = str(arguments.get("keywords") or "")
+            syndrome = arguments.get("syndrome")
+            if syndrome:
+                query = f"{query} {syndrome}"
+            results = self.retriever.vector_store.similarity_search(
+                "classic_cases", query, k=5
+            )
+            return [
+                self._record_evidence(
+                    {
+                        **result.get("metadata", {}),
+                        "document": result.get("document", ""),
+                        "record_id": result.get("id", ""),
+                    },
+                    "vector",
+                    result.get("score"),
+                )
+                for result in results
+            ]
+
+        return []
 
     # ── 中药查询管线 ──────────────────────────────────────────
 
