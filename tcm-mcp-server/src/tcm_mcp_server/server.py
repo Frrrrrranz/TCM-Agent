@@ -58,7 +58,7 @@ def create_server() -> object:
     # ── 初始化 RAG 引擎 ───────────────────────────────────────
 
     embedding_manager = EmbeddingManager()
-    vector_store = VectorStore(CHROMA_DIR)
+    vector_store = VectorStore(CHROMA_DIR, embedding_manager=embedding_manager)
     retriever = HybridRetriever(db, vector_store)
 
     # ── 预热向量库（避免首次工具调用超时）────────────────────

@@ -207,9 +207,25 @@ def main() -> None:
     db = Database(db_path)
     db.connect()
 
-    vector_store = VectorStore(chroma_dir)
+    embedding_manager = EmbeddingManager()
+    vector_store = VectorStore(chroma_dir, embedding_manager=embedding_manager)
 
     build_vector_store(db, vector_store)
+    from ..rag.index_manifest import IndexManifest
+
+    collection_names = ("herbs", "prescriptions", "syndromes", "acupoints")
+    collection_counts = {
+        name: vector_store.count(name) for name in collection_names
+    }
+    IndexManifest.create(
+        index_version=vector_store.index_version,
+        embedding_model=embedding_manager.model_name,
+        embedding_dimension=embedding_manager.dimension,
+        collections=collection_counts,
+        dataset_versions=[],
+        source_count=sum(collection_counts.values()),
+        status="active",
+    ).write(vector_store.persist_dir / "index-manifest.json")
 
     db.close()
 
