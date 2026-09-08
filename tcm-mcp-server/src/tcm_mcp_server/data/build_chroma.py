@@ -6,6 +6,7 @@ ChromaDB 向量库构建脚本。
 
 from __future__ import annotations
 
+import argparse
 import logging
 from pathlib import Path
 
@@ -193,22 +194,34 @@ def build_vector_store(db: Database, vector_store: VectorStore) -> None:
     logger.info("向量库构建完成！")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """主入口：构建向量库。"""
+    parser = argparse.ArgumentParser(description="Build a TCM Chroma index")
+    parser.add_argument("--db-path", type=Path)
+    parser.add_argument("--chroma-dir", type=Path)
+    parser.add_argument("--index-version", default="index-v1")
+    args = parser.parse_args(argv)
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
     paths = get_data_paths()
-    db_path = paths.db_path
-    chroma_dir = paths.chroma_dir
+    db_path = args.db_path or paths.db_path
+    chroma_dir = args.chroma_dir or paths.chroma_dir
+    if args.chroma_dir is None:
+        logger.warning("未指定 --chroma-dir，将使用默认向量库路径: %s", chroma_dir)
 
     db = Database(db_path)
     db.connect()
 
     embedding_manager = EmbeddingManager()
-    vector_store = VectorStore(chroma_dir, embedding_manager=embedding_manager)
+    vector_store = VectorStore(
+        chroma_dir,
+        embedding_manager=embedding_manager,
+        index_version=args.index_version,
+    )
 
     build_vector_store(db, vector_store)
     from ..rag.index_manifest import IndexManifest
