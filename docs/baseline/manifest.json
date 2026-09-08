@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "baseline.v1",
+  "capturedAt": "2026-09-08",
+  "product": {
+    "repository": "TCM-Agent",
+    "path": "D:/OneDrive/Desktop/dev/TCM-Agent/TCM-Agent",
+    "head": "a434053639a6f7b254de5c9b993933a757b23b8c",
+    "branch": "feat/protocol-safety-rag"
+  },
+  "worktree": {
+    "status": "dirty",
+    "userChangesPreserved": true,
+    "rawDataCommittedByThisBaseline": false,
+    "knownChangedPaths": [
+      "ARCHITECTURE.md",
+      "tcm-mcp-server/data/chroma/chroma.sqlite3",
+      "tcm-mcp-server/src/tcm_mcp_server/web/api/chat.py",
+      "tcm-mcp-server/src/tcm_mcp_server/web/service/agent_service.py",
+      "tcm-mcp-server/data/chroma-v2-20260813-b/",
+      "tcm-mcp-server/data/chroma-v2-20260813-c/",
+      "tcm-mcp-server/scratch_inspect.py",
+      "tcm-mcp-server/src/data/",
+      "tcm-mcp-server/src/tcm_mcp_server/data/_test_imports.py",
+      "tcm-mcp-server/src/tcm_mcp_server/data/_test_parse_real.py"
+    ]
+  },
+  "tooling": {
+    "nodeWorkflow": "npm (package-lock.json present)",
+    "pythonWorkflow": "project pyproject.toml; use project environment",
+    "productTests": "npm.cmd run check/lint/test; Python focused tests",
+    "bench": "tcm-bench uses Python standard library for the fixture path"
+  },
+  "dataPolicy": {
+    "databaseAndIndexes": "existing WIP; not copied or committed by UPG-00",
+    "liveModel": "not invoked",
+    "liveRetrieval": "not invoked"
+  }
+}
