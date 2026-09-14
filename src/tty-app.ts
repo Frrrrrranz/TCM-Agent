@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import process from 'node:process'
 import { listBackgroundTasks } from './background-tasks.js'
 import { runAgentTurn } from './agent-loop.js'
+import { createDefaultRunBudget } from './run-budget.js'
 import {
   SLASH_COMMANDS,
   findMatchingSlashCommands,
@@ -1174,6 +1175,7 @@ async function handleInput(
   args.permissions.beginTurn()
   try {
     const nextMessages = await runAgentTurn({
+      budget: createDefaultRunBudget(),
       model: args.model,
       tools: args.tools,
       messages: args.messages,

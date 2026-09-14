@@ -4,6 +4,7 @@ import type { ChatMessage, ModelAdapter } from './types.js'
 import type { ToolRegistry } from './tool.js'
 import type { PermissionManager } from './permissions.js'
 import { runAgentTurn } from './agent-loop.js'
+import { createDefaultRunBudget } from './run-budget.js'
 import { buildSystemPrompt } from './prompt.js'
 import { createContextCollapseState } from './compact/context-collapse.js'
 import { createContentReplacementState } from './utils/tool-result-storage.js'
@@ -117,6 +118,7 @@ export async function runJsonModeServer(args: {
 
       try {
         const updatedMessages = await runAgentTurn({
+          budget: createDefaultRunBudget(),
           model: args.model,
           tools: args.tools,
           messages,

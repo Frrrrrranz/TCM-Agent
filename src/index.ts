@@ -20,6 +20,7 @@ import type { ChatMessage } from './types.js'
 import { renderBanner } from './ui.js'
 import { runTtyApp } from './tty-app.js'
 import { runAgentTurn } from './agent-loop.js'
+import { createDefaultRunBudget } from './run-budget.js'
 import { runJsonModeServer } from './json-server.js'
 import {
   applyContextCollapseIfNeeded,
@@ -262,6 +263,7 @@ async function main(): Promise<void> {
       permissions.beginTurn()
       try {
         messages = await runAgentTurn({
+          budget: createDefaultRunBudget(),
           model,
           tools,
           messages,

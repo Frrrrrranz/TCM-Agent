@@ -7,6 +7,7 @@ import type {
   ProviderUsage,
 } from './types.js'
 import type { PermissionManager } from './permissions.js'
+import { RunBudget, type RunBudgetStopReason } from './run-budget.js'
 import { microcompact } from './compact/microcompact.js'
 import { autoCompact } from './compact/auto-compact.js'
 import {
@@ -19,7 +20,10 @@ import {
   snipCompactConversation,
   type SnipCompactResult,
 } from './compact/snipCompact.js'
-import { computeContextStats } from './utils/token-estimator.js'
+import {
+  computeContextStats,
+  estimateMessagesTokens,
+} from './utils/token-estimator.js'
 import {
   applyToolResultBudget,
   createContentReplacementState,
@@ -109,6 +113,27 @@ function isRecoverableThinkingStop(args: {
   )
 }
 
+
+function budgetStopContent(reason: RunBudgetStopReason): string {
+  switch (reason) {
+    case 'model_call_budget_exhausted':
+      return '达到模型调用预算限制，已停止当前回合。'
+    case 'tool_call_budget_exhausted':
+      return '达到工具调用预算限制，已停止当前回合。'
+    case 'token_budget_exhausted':
+      return '达到累计 Token 预算限制，已停止当前回合。'
+    case 'wall_clock_budget_exhausted':
+      return '达到运行时长预算限制，已停止当前回合。'
+    case 'retry_budget_exhausted':
+      return '达到返工重试预算限制，已停止当前回合。'
+    case 'depth_budget_exhausted':
+      return '达到子任务深度预算限制，已停止当前回合。'
+    case 'concurrency_budget_exhausted':
+      return '达到并发调用预算限制，已停止当前回合。'
+    case 'no_progress':
+      return '检测到重复工具结果且无进展，已停止当前回合。'
+  }
+}
 export async function runAgentTurn(args: {
   model: ModelAdapter
   tools: ToolRegistry
@@ -116,6 +141,8 @@ export async function runAgentTurn(args: {
   cwd: string
   permissions?: PermissionManager
   maxSteps?: number
+  budget?: RunBudget
+  depth?: number
   modelName?: string
   onToolStart?: (toolName: string, input: unknown) => void
   onToolResult?: (toolName: string, output: string, isError: boolean) => void
@@ -160,6 +187,18 @@ export async function runAgentTurn(args: {
     ]
   }
 
+  const stopForBudget = (reason: RunBudgetStopReason): ChatMessage[] => {
+    const content = budgetStopContent(reason)
+    args.onAssistantMessage?.(content)
+    return [
+      ...messages,
+      {
+        role: 'assistant',
+        content,
+      },
+    ]
+  }
+
   const appendThinkingBlocks = (blocks: ProviderThinkingBlock[] | undefined) => {
     if (!blocks || blocks.length === 0) return
     messages = [
@@ -170,6 +209,9 @@ export async function runAgentTurn(args: {
       },
     ]
   }
+
+  const depthStopReason = args.budget?.validateDepth(args.depth ?? 0)
+  if (depthStopReason) return stopForBudget(depthStopReason)
 
   for (let step = 0; maxSteps == null || step < maxSteps; step++) {
     let latestStats: import('./utils/token-estimator.js').ContextStats | null = null
@@ -235,7 +277,14 @@ export async function runAgentTurn(args: {
       }
     }
 
+    const modelStopReason = args.budget?.beforeModelCall()
+    if (modelStopReason) return stopForBudget(modelStopReason)
+
     const next = await args.model.next(modelMessages)
+    const tokenStopReason = args.budget?.recordTokenUsage(
+      next.usage?.totalTokens ?? estimateMessagesTokens(modelMessages),
+      next.usage === undefined,
+    )
 
     if (next.type === 'assistant') {
       const isEmpty = isEmptyAssistantResponse(next.content)
@@ -270,6 +319,8 @@ export async function runAgentTurn(args: {
         }) &&
         recoverableThinkingRetryCount < 3
       ) {
+        const retryStopReason = args.budget?.consumeRetry()
+        if (retryStopReason) return stopForBudget(retryStopReason)
         recoverableThinkingRetryCount += 1
         const stopReason = next.diagnostics?.stopReason
         const progressContent =
@@ -290,6 +341,8 @@ export async function runAgentTurn(args: {
       }
 
       if (isEmpty && emptyResponseRetryCount < 2) {
+        const retryStopReason = args.budget?.consumeRetry()
+        if (retryStopReason) return stopForBudget(retryStopReason)
         emptyResponseRetryCount += 1
         pushContinuationPrompt(
           sawToolResultThisTurn
@@ -339,6 +392,8 @@ export async function runAgentTurn(args: {
 
       return withAssistant
     }
+    if (tokenStopReason) return stopForBudget(tokenStopReason)
+
 
     appendThinkingBlocks(next.thinkingBlocks)
 
@@ -373,14 +428,17 @@ export async function runAgentTurn(args: {
       result: Awaited<ReturnType<ToolRegistry['execute']>>
       toolResult: PendingToolResult
     }> = []
+    let toolStopReason: RunBudgetStopReason | undefined
 
     for (const call of next.calls) {
+      toolStopReason = args.budget?.reserveToolCall()
+      if (toolStopReason) break
       args.onToolStart?.(call.toolName, call.input)
       const result = await args.tools.execute(
         call.toolName,
         call.input,
         { cwd: args.cwd, permissions: args.permissions },
-      )
+      ).finally(() => args.budget?.releaseToolCall())
       sawToolResultThisTurn = true
       if (!result.ok) {
         toolErrorCount += 1
@@ -400,6 +458,12 @@ export async function runAgentTurn(args: {
         result,
         toolResult,
       })
+      toolStopReason = args.budget?.recordToolOutcome(
+        call.toolName,
+        call.input,
+        result.output,
+      )
+      if (toolStopReason) break
     }
 
     const budgetedResults = await applyToolResultBudget(
@@ -432,6 +496,8 @@ export async function runAgentTurn(args: {
       ...toolCallMessages,
       ...toolResults,
     ]
+
+    if (toolStopReason) return stopForBudget(toolStopReason)
 
     const awaitUserEntry = executedToolResults.find(entry => entry.result.awaitUser)
     if (awaitUserEntry) {
