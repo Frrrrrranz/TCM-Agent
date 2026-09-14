@@ -17,9 +17,25 @@ export type BackgroundTaskResult = {
   startedAt: number
 }
 
+export type ToolErrorCode =
+  | 'invalid_arguments'
+  | 'forbidden'
+  | 'transient'
+  | 'timeout'
+  | 'cancelled'
+  | 'version_mismatch'
+  | 'internal'
+
+export type ToolFailure = {
+  code: ToolErrorCode
+  retryable: boolean
+  message: string
+}
+
 export type ToolResult = {
   ok: boolean
   output: string
+  error?: ToolFailure
   backgroundTask?: BackgroundTaskResult
   awaitUser?: boolean
 }
@@ -35,6 +51,44 @@ export type ToolDefinition<TInput> = {
 type ToolRegistryMetadata = {
   skills?: SkillSummary[]
   mcpServers?: McpServerSummary[]
+}
+
+export function classifyToolFailure(message: string): ToolFailure {
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes('abort') || normalized.includes('cancel')) {
+    return { code: 'cancelled', retryable: false, message }
+  }
+  if (normalized.includes('timeout') || normalized.includes('timed out')) {
+    return { code: 'timeout', retryable: true, message }
+  }
+  if (
+    normalized.includes('429') ||
+    normalized.includes('rate limit') ||
+    normalized.includes('temporarily unavailable') ||
+    normalized.includes('econnreset') ||
+    normalized.includes('connection reset')
+  ) {
+    return { code: 'transient', retryable: true, message }
+  }
+  if (
+    normalized.includes('forbidden') ||
+    normalized.includes('permission denied') ||
+    normalized.includes('not allowed') ||
+    normalized.includes('unauthorized') ||
+    normalized.includes('http 403')
+  ) {
+    return { code: 'forbidden', retryable: false, message }
+  }
+  if (
+    normalized.includes('version mismatch') ||
+    normalized.includes('stale version') ||
+    normalized.includes('http 409')
+  ) {
+    return { code: 'version_mismatch', retryable: false, message }
+  }
+
+  return { code: 'internal', retryable: false, message }
 }
 
 export class ToolRegistry {
@@ -102,6 +156,11 @@ export class ToolRegistry {
       return {
         ok: false,
         output: `Unknown tool: ${toolName}`,
+        error: {
+          code: 'invalid_arguments',
+          retryable: false,
+          message: `Unknown tool: ${toolName}`,
+        },
       }
     }
 
@@ -110,15 +169,27 @@ export class ToolRegistry {
       return {
         ok: false,
         output: parsed.error.message,
+        error: {
+          code: 'invalid_arguments',
+          retryable: false,
+          message: parsed.error.message,
+        },
       }
     }
 
     try {
-      return await tool.run(parsed.data, context)
+      const result = await tool.run(parsed.data, context)
+      if (result.ok || result.error) return result
+      return {
+        ...result,
+        error: classifyToolFailure(result.output),
+      }
     } catch (error) {
+      const output = error instanceof Error ? error.message : String(error)
       return {
         ok: false,
-        output: error instanceof Error ? error.message : String(error),
+        output,
+        error: classifyToolFailure(output),
       }
     }
   }
