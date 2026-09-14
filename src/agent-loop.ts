@@ -431,14 +431,43 @@ export async function runAgentTurn(args: {
     let toolStopReason: RunBudgetStopReason | undefined
 
     for (const call of next.calls) {
-      toolStopReason = args.budget?.reserveToolCall()
-      if (toolStopReason) break
-      args.onToolStart?.(call.toolName, call.input)
-      const result = await args.tools.execute(
-        call.toolName,
-        call.input,
-        { cwd: args.cwd, permissions: args.permissions },
-      ).finally(() => args.budget?.releaseToolCall())
+      const executionPolicy = args.tools.getExecutionPolicy(call.toolName)
+      let result: Awaited<ReturnType<ToolRegistry['execute']>> | undefined
+      let retryAttempt = 0
+      let announced = false
+
+      while (true) {
+        toolStopReason = args.budget?.reserveToolCall()
+        if (toolStopReason) break
+        if (!announced) {
+          args.onToolStart?.(call.toolName, call.input)
+          announced = true
+        }
+        result = await args.tools.execute(
+          call.toolName,
+          call.input,
+          { cwd: args.cwd, permissions: args.permissions },
+        ).finally(() => args.budget?.releaseToolCall())
+
+        if (
+          result.ok ||
+          !result.error?.retryable ||
+          executionPolicy.idempotency !== 'safe' ||
+          retryAttempt >= executionPolicy.maxRetries
+        ) {
+          break
+        }
+
+        toolStopReason = args.budget?.consumeRetry()
+        if (toolStopReason) break
+        retryAttempt += 1
+        const backoffMs = executionPolicy.retryBackoffMs * 2 ** (retryAttempt - 1)
+        if (backoffMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, backoffMs))
+        }
+      }
+
+      if (!result) break
       sawToolResultThisTurn = true
       if (!result.ok) {
         toolErrorCount += 1

@@ -32,6 +32,18 @@ export type ToolFailure = {
   message: string
 }
 
+export type ToolExecutionPolicy = {
+  idempotency: 'safe' | 'unsafe' | 'unknown'
+  maxRetries?: number
+  retryBackoffMs?: number
+}
+
+export const DEFAULT_TOOL_EXECUTION_POLICY: Readonly<Required<ToolExecutionPolicy>> = {
+  idempotency: 'unknown',
+  maxRetries: 0,
+  retryBackoffMs: 100,
+}
+
 export type ToolResult = {
   ok: boolean
   output: string
@@ -45,6 +57,7 @@ export type ToolDefinition<TInput> = {
   description: string
   inputSchema: Record<string, unknown>
   schema: z.ZodType<TInput>
+  execution?: ToolExecutionPolicy
   run(input: TInput, context: ToolContext): Promise<ToolResult>
 }
 
@@ -144,6 +157,16 @@ export class ToolRegistry {
 
   find(name: string): ToolDefinition<unknown> | undefined {
     return this.toolsStore.find(tool => tool.name === name)
+  }
+
+  getExecutionPolicy(name: string): Readonly<Required<ToolExecutionPolicy>> {
+    const execution = this.find(name)?.execution
+    return {
+      idempotency: execution?.idempotency ?? DEFAULT_TOOL_EXECUTION_POLICY.idempotency,
+      maxRetries: execution?.maxRetries ?? DEFAULT_TOOL_EXECUTION_POLICY.maxRetries,
+      retryBackoffMs:
+        execution?.retryBackoffMs ?? DEFAULT_TOOL_EXECUTION_POLICY.retryBackoffMs,
+    }
   }
 
   async execute(

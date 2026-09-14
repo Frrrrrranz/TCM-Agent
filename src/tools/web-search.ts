@@ -51,6 +51,11 @@ export const webSearchTool: ToolDefinition<Input> = {
         })
       }
     }),
+  execution: {
+    idempotency: 'safe',
+    maxRetries: 2,
+    retryBackoffMs: 250,
+  },
   async run(input) {
     try {
       const result = await searchDuckDuckGoLite({

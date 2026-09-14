@@ -26,6 +26,11 @@ export const webFetchTool: ToolDefinition<Input> = {
     url: z.string().url(),
     max_chars: z.number().int().min(500).optional(),
   }),
+  execution: {
+    idempotency: 'safe',
+    maxRetries: 2,
+    retryBackoffMs: 250,
+  },
   async run(input) {
     try {
       const maxChars = input.max_chars ?? 12000
