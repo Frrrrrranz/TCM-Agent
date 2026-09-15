@@ -5,6 +5,10 @@ import type { ToolRegistry } from './tool.js'
 import type { PermissionManager } from './permissions.js'
 import { runAgentTurn } from './agent-loop.js'
 import { createDefaultRunBudget } from './run-budget.js'
+import {
+  isCancellationError,
+  throwIfAborted,
+} from './utils/cancellation.js'
 import { buildSystemPrompt } from './prompt.js'
 import { createContextCollapseState } from './compact/context-collapse.js'
 import { createContentReplacementState } from './utils/tool-result-storage.js'
@@ -36,6 +40,15 @@ export async function runJsonModeServer(args: {
   let currentRequestId: string | undefined
   const completedRequestIds = new Set<string>()
   const toolUseIds = new Map<string, string[]>()
+  const pendingCancellationKeys = new Set<string>()
+  const cancellationKey = (sessionId: string, requestId: string): string =>
+    JSON.stringify([sessionId, requestId])
+
+  let activeTurn: {
+    sessionId: string
+    requestId: string
+    controller: AbortController
+  } | undefined
 
   const emit = (
     frame: Omit<JsonOutput, 'protocolVersion' | 'sequence' | 'timestamp'>,
@@ -50,6 +63,44 @@ export async function runJsonModeServer(args: {
     input: process.stdin,
     output: process.stdout,
     terminal: false,
+  })
+
+  const requestCancellation = (
+    input: Extract<JsonInput, { type: 'cancel_turn' }>,
+  ): boolean => {
+    if (completedRequestIds.has(input.requestId)) return true
+    if (
+      !activeTurn ||
+      activeTurn.sessionId !== input.sessionId ||
+      activeTurn.requestId !== input.requestId
+    ) {
+      return false
+    }
+    if (!activeTurn.controller.signal.aborted) {
+      activeTurn.controller.abort()
+      emit({
+        type: 'cancel_requested',
+        sessionId: input.sessionId,
+        requestId: input.requestId,
+      })
+    }
+    return true
+  }
+
+  rl.on('line', line => {
+    try {
+      const parsed = JsonInputSchema.safeParse(JSON.parse(line))
+      if (parsed.success && parsed.data.type === 'cancel_turn') {
+        const handled = requestCancellation(parsed.data)
+        if (!handled) {
+          pendingCancellationKeys.add(
+            cancellationKey(parsed.data.sessionId, parsed.data.requestId),
+          )
+        }
+      }
+    } catch {
+      // The main protocol loop emits the validation error for malformed input.
+    }
   })
 
   let memoryMessages: ChatMessage[] = [
@@ -83,11 +134,17 @@ export async function runJsonModeServer(args: {
       }
 
       if (input.type === 'cancel_turn') {
-        emit({
-          type: 'turn_cancelled',
-          sessionId: input.sessionId,
-          requestId: input.requestId,
-        })
+        pendingCancellationKeys.delete(
+          cancellationKey(input.sessionId, input.requestId),
+        )
+        if (!requestCancellation(input)) {
+          emit({
+            type: 'error',
+            sessionId: input.sessionId,
+            requestId: input.requestId,
+            content: 'cancel_target_not_running',
+          })
+        }
         continue
       }
 
@@ -101,7 +158,26 @@ export async function runJsonModeServer(args: {
         continue
       }
 
+      const turnController = new AbortController()
+      activeTurn = {
+        sessionId: input.sessionId,
+        requestId: input.requestId,
+        controller: turnController,
+      }
       const messages: ChatMessage[] = [...memoryMessages]
+      if (
+        pendingCancellationKeys.delete(
+          cancellationKey(input.sessionId, input.requestId),
+        )
+      ) {
+        requestCancellation({
+          protocolVersion: input.protocolVersion,
+          type: 'cancel_turn',
+          sessionId: input.sessionId,
+          requestId: input.requestId,
+          sequence: input.sequence,
+        })
+      }
       const systemPrompt = await buildSystemPrompt(args.cwd, args.permissions.getSummary(), {
         skills: args.tools.getSkills(),
         mcpServers: args.tools.getMcpServers(),
@@ -119,6 +195,7 @@ export async function runJsonModeServer(args: {
       try {
         const updatedMessages = await runAgentTurn({
           budget: createDefaultRunBudget(),
+          signal: turnController.signal,
           model: args.model,
           tools: args.tools,
           messages,
@@ -175,6 +252,7 @@ export async function runJsonModeServer(args: {
           },
         })
 
+        throwIfAborted(turnController.signal)
         memoryMessages = updatedMessages
         completedRequestIds.add(input.requestId)
         emit({
@@ -185,6 +263,17 @@ export async function runJsonModeServer(args: {
           streaming: false,
         })
       } catch (error) {
+        if (isCancellationError(error)) {
+          completedRequestIds.add(input.requestId)
+          emit({
+            type: 'turn_cancelled',
+            sessionId: input.sessionId,
+            requestId: input.requestId,
+          })
+          continue
+        }
+
+        completedRequestIds.add(input.requestId)
         const errorMsg = error instanceof Error ? error.message : String(error)
         messages.push({ role: 'assistant', content: `请求失败: ${errorMsg}` })
         memoryMessages = messages
@@ -203,8 +292,14 @@ export async function runJsonModeServer(args: {
         })
       } finally {
         args.permissions.endTurn()
+        if (activeTurn?.requestId === input.requestId) {
+          activeTurn = undefined
+        }
       }
     } catch {
+      if (activeTurn?.requestId === currentRequestId) {
+        activeTurn = undefined
+      }
       emit({
         type: 'error',
         sessionId: currentSessionId,

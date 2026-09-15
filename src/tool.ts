@@ -5,6 +5,7 @@ import type { McpServerSummary } from './mcp.js'
 
 export type ToolContext = {
   cwd: string
+  signal?: AbortSignal
   permissions?: PermissionManager
 }
 

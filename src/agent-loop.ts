@@ -25,6 +25,10 @@ import {
   estimateMessagesTokens,
 } from './utils/token-estimator.js'
 import {
+  abortableDelay,
+  throwIfAborted,
+} from './utils/cancellation.js'
+import {
   applyToolResultBudget,
   createContentReplacementState,
   replaceLargeToolResult,
@@ -143,6 +147,7 @@ export async function runAgentTurn(args: {
   maxSteps?: number
   budget?: RunBudget
   depth?: number
+  signal?: AbortSignal
   modelName?: string
   onToolStart?: (toolName: string, input: unknown) => void
   onToolResult?: (toolName: string, output: string, isError: boolean) => void
@@ -210,6 +215,7 @@ export async function runAgentTurn(args: {
     ]
   }
 
+  throwIfAborted(args.signal)
   const depthStopReason = args.budget?.validateDepth(args.depth ?? 0)
   if (depthStopReason) return stopForBudget(depthStopReason)
 
@@ -277,10 +283,11 @@ export async function runAgentTurn(args: {
       }
     }
 
+    throwIfAborted(args.signal)
     const modelStopReason = args.budget?.beforeModelCall()
     if (modelStopReason) return stopForBudget(modelStopReason)
 
-    const next = await args.model.next(modelMessages)
+    const next = await args.model.next(modelMessages, { signal: args.signal })
     const tokenStopReason = args.budget?.recordTokenUsage(
       next.usage?.totalTokens ?? estimateMessagesTokens(modelMessages),
       next.usage === undefined,
@@ -437,6 +444,7 @@ export async function runAgentTurn(args: {
       let announced = false
 
       while (true) {
+        throwIfAborted(args.signal)
         toolStopReason = args.budget?.reserveToolCall()
         if (toolStopReason) break
         if (!announced) {
@@ -446,7 +454,11 @@ export async function runAgentTurn(args: {
         result = await args.tools.execute(
           call.toolName,
           call.input,
-          { cwd: args.cwd, permissions: args.permissions },
+          {
+            cwd: args.cwd,
+            permissions: args.permissions,
+            signal: args.signal,
+          },
         ).finally(() => args.budget?.releaseToolCall())
 
         if (
@@ -463,7 +475,7 @@ export async function runAgentTurn(args: {
         retryAttempt += 1
         const backoffMs = executionPolicy.retryBackoffMs * 2 ** (retryAttempt - 1)
         if (backoffMs > 0) {
-          await new Promise(resolve => setTimeout(resolve, backoffMs))
+          await abortableDelay(backoffMs, args.signal)
         }
       }
 

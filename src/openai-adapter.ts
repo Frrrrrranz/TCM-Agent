@@ -2,12 +2,14 @@ import type { ToolRegistry } from './tool.js'
 import type {
   ChatMessage,
   ModelAdapter,
+  ModelRequestOptions,
   ProviderThinkingBlock,
   ProviderUsage,
   StepDiagnostics,
   ToolCall,
 } from './types.js'
 import type { RuntimeConfig } from './config.js'
+import { abortableDelay } from './utils/cancellation.js'
 import { resolveMaxOutputTokens } from './utils/context.js'
 
 const DEFAULT_MAX_RETRIES = 4
@@ -65,11 +67,6 @@ type OpenAIResponse = {
 
 // ── 重试工具函数（与 anthropic-adapter 保持一致）─────────────────────────────
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, Math.max(0, ms))
-  })
-}
 
 function getRetryLimit(): number {
   const value = Number(process.env.TCM_AGENT_MAX_RETRIES)
@@ -262,7 +259,10 @@ export class OpenAIModelAdapter implements ModelAdapter {
     private readonly getRuntimeConfig: () => Promise<RuntimeConfig>,
   ) {}
 
-  async next(messages: ChatMessage[]): Promise<import('./types.js').AgentStep> {
+  async next(
+    messages: ChatMessage[],
+    options: ModelRequestOptions = {},
+  ): Promise<import('./types.js').AgentStep> {
     const runtime = await this.getRuntimeConfig()
     const openAIMessages = toOpenAIMessages(messages)
     const url = `${runtime.baseUrl.replace(/\/$/, '')}/v1/chat/completions`
@@ -306,11 +306,12 @@ export class OpenAIModelAdapter implements ModelAdapter {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
+        signal: options.signal,
       })
       if (response.ok) break
       if (!shouldRetryStatus(response.status) || attempt >= maxRetries) break
       const retryAfterMs = parseRetryAfterMs(response.headers.get('retry-after'))
-      await sleep(getRetryDelayMs(attempt + 1, retryAfterMs))
+      await abortableDelay(getRetryDelayMs(attempt + 1, retryAfterMs), options.signal)
     }
 
     if (!response) {
