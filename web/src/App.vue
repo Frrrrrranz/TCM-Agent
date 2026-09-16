@@ -54,6 +54,17 @@ onMounted(() => {
       <!-- 聊天内容区域 -->
       <ChatThread :messages="currentSession?.messages || []" />
       
+      <div v-if="isGenerating" class="px-4 pb-2 text-right">
+        <button
+          type="button"
+          class="rounded border border-current px-3 py-1 text-sm"
+          aria-label="停止当前生成"
+          @click="store.stopGenerating()"
+        >
+          停止生成
+        </button>
+      </div>
+
       <!-- 底部输入栏 -->
       <ChatInput
         :disabled="isGenerating"

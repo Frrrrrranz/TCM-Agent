@@ -76,3 +76,15 @@ def test_cancel_running_turn_cancels_task_and_recycles_agent(
     )
     asyncio.run(run_test())
     assert cancel_run_calls == [("request-1", "session-1")]
+
+def test_cancel_requested_frame_is_accepted() -> None:
+    frame = WebSocketMessage.model_validate(
+        {
+            "protocolVersion": 1,
+            "type": "cancel_requested",
+            "sessionId": "session-1",
+            "requestId": "request-1",
+            "sequence": 2,
+        }
+    )
+    assert frame.type == "cancel_requested"

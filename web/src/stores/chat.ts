@@ -63,6 +63,10 @@ export const useChatStore = defineStore('chat', () => {
 
   const socket = ref<WebSocket | null>(null)
   let outgoingSequence = 0
+  let connectedSessionId = ''
+  let activeRequestId: string | null = null
+  let activeRequestSessionId: string | null = null
+  let pendingAnswer = ''
   
   const currentSession = computed(() => {
     return sessions.value.find((s) => s.id === activeSessionId.value)
@@ -74,6 +78,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function createNewSession() {
+    disconnectForSessionChange()
     const id = Math.random().toString(36).substring(2, 10)
     const newSession: Session = {
       id,
@@ -89,8 +94,16 @@ export const useChatStore = defineStore('chat', () => {
     activeSessionId.value = id
   }
 
+  function selectSession(id: string) {
+    if (id === activeSessionId.value) return
+    if (!sessions.value.some(session => session.id === id)) return
+    disconnectForSessionChange()
+    activeSessionId.value = id
+  }
+
   function deleteSession(id: string) {
     const index = sessions.value.findIndex((s) => s.id === id)
+    if (activeSessionId.value === id) disconnectForSessionChange()
     if (index !== -1) {
       sessions.value.splice(index, 1)
       if (activeSessionId.value === id) {
@@ -104,25 +117,49 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function disconnectForSessionChange() {
+    const previousSocket = socket.value
+    socket.value = null
+    connectedSessionId = ''
+    activeRequestId = null
+    activeRequestSessionId = null
+    pendingAnswer = ''
+    isConnected.value = false
+    isGenerating.value = false
+    previousSocket?.close()
+  }
+
   function initWebSocket(onReady?: () => void) {
-    if (socket.value && socket.value.readyState === WebSocket.OPEN) {
-      if (onReady) onReady()
-      return
+    if (socket.value && connectedSessionId !== activeSessionId.value) {
+      disconnectForSessionChange()
+    }
+    if (socket.value) {
+      if (socket.value.readyState === WebSocket.OPEN) {
+        onReady?.()
+      } else if (socket.value.readyState === WebSocket.CONNECTING) {
+        if (onReady) socket.value.addEventListener('open', onReady, { once: true })
+      } else {
+        disconnectForSessionChange()
+      }
+      if (socket.value) return
     }
 
     // 后端默认运行于 8000 端口
     outgoingSequence = 0
-    const wsUrl = `ws://${window.location.hostname}:8000/ws/chat?session_id=${encodeURIComponent(activeSessionId.value)}`
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${socketProtocol}//${window.location.hostname}:8000/ws/chat?session_id=${encodeURIComponent(activeSessionId.value)}`
     const ws = new WebSocket(wsUrl)
     socket.value = ws
+    connectedSessionId = activeSessionId.value
 
     ws.onopen = () => {
+      if (socket.value !== ws) return
       isConnected.value = true
-      console.log('WebSocket 连接已打通')
       if (onReady) onReady()
     }
 
     ws.onmessage = (event) => {
+      if (socket.value !== ws) return
       try {
         const data = JSON.parse(event.data)
         handleStreamMessage(data)
@@ -132,9 +169,14 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     ws.onclose = () => {
+      if (socket.value !== ws) return
+      socket.value = null
+      connectedSessionId = ''
+      activeRequestId = null
+      activeRequestSessionId = null
+      pendingAnswer = ''
       isConnected.value = false
       isGenerating.value = false
-      console.log('WebSocket 连接关闭，正在自动重连...')
     }
 
     ws.onerror = (err) => {
@@ -144,7 +186,11 @@ export const useChatStore = defineStore('chat', () => {
 
   function sendPayload(content: string) {
     if (!socket.value || socket.value.readyState !== WebSocket.OPEN) return
+    if (activeRequestId) return
     const requestId = crypto.randomUUID()
+    activeRequestId = requestId
+    activeRequestSessionId = activeSessionId.value
+    pendingAnswer = ''
     socket.value.send(
       JSON.stringify({
         protocolVersion: 1,
@@ -159,6 +205,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function sendMessage(text: string) {
     if (!text.trim()) return
+    if (isGenerating.value) return
 
     const session = currentSession.value
     if (!session) return
@@ -178,7 +225,7 @@ export const useChatStore = defineStore('chat', () => {
 
     // 3. 构建发送历史（剔除 system 角色以减少网络开销）
     // 4. 发送 WebSocket，如果连接未就绪则初始化后发送
-    if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
+    if (!socket.value || socket.value.readyState !== WebSocket.OPEN || connectedSessionId !== activeSessionId.value) {
       initWebSocket(() => {
         sendPayload(text)
       })
@@ -187,10 +234,33 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function stopGenerating() {
+    if (!activeRequestId || !activeRequestSessionId) {
+      if (isGenerating.value) disconnectForSessionChange()
+      return
+    }
+    if (!socket.value || socket.value.readyState !== WebSocket.OPEN) return
+    socket.value.send(JSON.stringify({
+      protocolVersion: 1,
+      type: 'cancel_turn',
+      sessionId: activeRequestSessionId,
+      requestId: activeRequestId,
+      sequence: outgoingSequence++,
+    }))
+  }
+
   function handleStreamMessage(data: unknown) {
     if (!data || typeof data !== 'object' || !('type' in data)) return
     const frame = data as WebSocketFrame
     if (frame.protocolVersion !== 1 || typeof frame.sequence !== 'number') return
+    if (frame.type !== 'init' && frame.type !== 'heartbeat_ack') {
+      if (
+        !activeRequestId ||
+        frame.requestId !== activeRequestId ||
+        frame.sessionId !== activeRequestSessionId ||
+        activeSessionId.value !== activeRequestSessionId
+      ) return
+    }
     const session = currentSession.value
     if (!session) return
 
@@ -231,16 +301,8 @@ export const useChatStore = defineStore('chat', () => {
         break
 
       case 'assistant_message': {
-        // AI 流式生成文本响应，直接拼接到最后一个 assistant 消息
-        const lastMsg = session.messages[session.messages.length - 1]
-        if (lastMsg && lastMsg.role === 'assistant') {
-          lastMsg.content = (lastMsg.content || '') + (frame.content || '')
-        } else {
-          session.messages.push({
-            role: 'assistant',
-            content: frame.content,
-          })
-        }
+        // NOTE: 未验收的医疗建议不以 Token 增量公开；最终消息仍由服务端权威快照提供。
+        if (frame.streaming) pendingAnswer = (pendingAnswer + (frame.content || '')).slice(-12000)
         break
       }
 
@@ -266,6 +328,19 @@ export const useChatStore = defineStore('chat', () => {
           }
         }
         isGenerating.value = false
+        activeRequestId = null
+        activeRequestSessionId = null
+        pendingAnswer = ''
+        break
+
+      case 'cancel_requested':
+        break
+
+      case 'turn_cancelled':
+        isGenerating.value = false
+        activeRequestId = null
+        activeRequestSessionId = null
+        pendingAnswer = ''
         break
 
       case 'error':
@@ -276,6 +351,9 @@ export const useChatStore = defineStore('chat', () => {
           isError: true,
         })
         isGenerating.value = false
+        activeRequestId = null
+        activeRequestSessionId = null
+        pendingAnswer = ''
         break
     }
   }
@@ -290,8 +368,10 @@ export const useChatStore = defineStore('chat', () => {
     tokensLimit,
     currentSession,
     createNewSession,
+    selectSession,
     deleteSession,
     sendMessage,
+    stopGenerating,
     initWebSocket,
   }
 })

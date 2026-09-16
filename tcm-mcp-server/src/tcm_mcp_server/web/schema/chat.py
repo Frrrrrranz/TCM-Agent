@@ -16,6 +16,7 @@ OutputType = Literal[
     "progress_message",
     "turn_complete",
     "turn_cancelled",
+    "cancel_requested",
     "error",
 ]
 

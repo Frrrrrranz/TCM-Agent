@@ -10,7 +10,7 @@ const createNew = () => {
 }
 
 const selectSession = (id: string) => {
-  activeSessionId.value = id
+  store.selectSession(id)
 }
 
 const deleteSession = (id: string, event: Event) => {

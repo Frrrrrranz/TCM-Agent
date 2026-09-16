@@ -11,3 +11,5 @@
 | UPG-04 | implemented | JSON `cancel_turn` / 增量订阅 → `runAgentTurn` → OpenAI/Anthropic SSE → 模型 HTTP / 重试等待 / 前台子进程 | `src/model-stream.ts`、`src/utils/sse.ts`、`src/utils/cancellation.ts`、模型适配器、Agent Loop、JSON 协议与 Server、流式/取消测试 | `npm.cmd run check`、`npm.cmd run lint` 通过；`npm.cmd test`：230/230 | 已输出类型化文本增量、工具参数增量、完整工具调用、usage/end 事件；JSON 主链路在答案结束前发送增量，并区分 `cancel_requested` 与实际 `turn_cancelled`。非订阅调用保持非流式兼容；尚缺 Web/Python/前端控制链路、MCP 取消、迟到帧与重连竞态验证 | 接入 WebSocket 控制面与前端增量聚合，增加旧 Run 迟到帧隔离 |
 
 状态没有写成 `verified` 的项目，不能当作业务验收完成。
+
+UPG-04 Web 接入补充（仍为 `implemented`）：前端按 sessionId/requestId 隔离旧帧、提供停止按钮和 `cancel_turn` 控制消息；Python 协议 Schema 接受 `cancel_requested`。`web` 的 `npm.cmd run build` 通过，`python -m pytest tests/web/test_protocol.py -q` 为 5 passed。未验收的医疗建议增量只在有界内存中暂存，不提前公开；Python 网关/Agent service 的取消与持久终态仍在用户 WIP 文件中，尚未合并或验收，不声称 WebSocket 端到端取消完成。
