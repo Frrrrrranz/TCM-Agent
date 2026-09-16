@@ -85,8 +85,35 @@ export type AgentStep =
       usage?: ProviderUsage
     }
 
+export type ModelStreamEvent =
+  | {
+      type: 'text_delta'
+      content: string
+    }
+  | {
+      type: 'tool_argument_delta'
+      index: number
+      toolCallId?: string
+      toolName?: string
+      argumentsDelta: string
+    }
+  | {
+      type: 'tool_call'
+      index: number
+      call: ToolCall
+    }
+  | {
+      type: 'usage'
+      usage: ProviderUsage
+    }
+  | {
+      type: 'end'
+      stopReason?: string
+    }
+
 export type ModelRequestOptions = {
   signal?: AbortSignal
+  onEvent?: (event: ModelStreamEvent) => void
 }
 
 export interface ModelAdapter {

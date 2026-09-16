@@ -149,6 +149,7 @@ export async function runAgentTurn(args: {
   depth?: number
   signal?: AbortSignal
   modelName?: string
+  onAssistantDelta?: (content: string) => void
   onToolStart?: (toolName: string, input: unknown) => void
   onToolResult?: (toolName: string, output: string, isError: boolean) => void
   onAssistantMessage?: (content: string) => void
@@ -287,7 +288,16 @@ export async function runAgentTurn(args: {
     const modelStopReason = args.budget?.beforeModelCall()
     if (modelStopReason) return stopForBudget(modelStopReason)
 
-    const next = await args.model.next(modelMessages, { signal: args.signal })
+    const next = await args.model.next(modelMessages, {
+      signal: args.signal,
+      onEvent: args.onAssistantDelta
+        ? event => {
+            if (event.type === 'text_delta') {
+              args.onAssistantDelta?.(event.content)
+            }
+          }
+        : undefined,
+    })
     const tokenStopReason = args.budget?.recordTokenUsage(
       next.usage?.totalTokens ?? estimateMessagesTokens(modelMessages),
       next.usage === undefined,

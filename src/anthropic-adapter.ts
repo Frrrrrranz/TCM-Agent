@@ -12,6 +12,7 @@ import type { RuntimeConfig } from './config.js'
 import { abortableDelay } from './utils/cancellation.js'
 import { resolveMaxOutputTokens } from './utils/context.js'
 import { buildAnthropicSnipBoundaryText } from './compact/snipCompact.js'
+import { parseAnthropicStream } from './model-stream.js'
 
 const DEFAULT_MAX_RETRIES = 4
 const BASE_RETRY_DELAY_MS = 500
@@ -345,6 +346,11 @@ export class AnthropicModelAdapter implements ModelAdapter {
       requestBody.temperature = Math.min(1, Math.max(0, runtime.temperature))
     }
 
+
+    if (options.onEvent) {
+      requestBody.stream = true
+    }
+
     const maxRetries = getRetryLimit()
     let response: Response | null = null
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
@@ -368,11 +374,22 @@ export class AnthropicModelAdapter implements ModelAdapter {
       throw new Error('Model request failed before receiving a response')
     }
 
-    const data = (await readJsonBody(response)) as {
+    let streamUsage: ProviderUsage | undefined
+    let data: {
       stop_reason?: string
       content?: AnthropicContentBlock[]
       usage?: AnthropicUsage
       error?: { message?: string }
+    }
+    if (response.ok && options.onEvent) {
+      const streamed = await parseAnthropicStream(response, options.onEvent)
+      streamUsage = streamed.usage
+      data = {
+        stop_reason: streamed.stopReason,
+        content: streamed.content,
+      }
+    } else {
+      data = (await readJsonBody(response)) as typeof data
     }
 
     if (!response.ok) {
@@ -416,7 +433,7 @@ export class AnthropicModelAdapter implements ModelAdapter {
       blockTypes,
       ignoredBlockTypes: [...ignoredBlockTypes],
     }
-    const usage = normalizeAnthropicUsage(data.usage)
+    const usage = streamUsage ?? normalizeAnthropicUsage(data.usage)
 
     if (toolCalls.length > 0) {
       return {

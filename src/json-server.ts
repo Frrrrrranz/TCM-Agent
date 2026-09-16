@@ -233,13 +233,22 @@ export async function runJsonModeServer(args: {
               isError,
             })
           },
-          onAssistantMessage: content => {
+          onAssistantDelta: content => {
             emit({
               type: 'assistant_message',
               sessionId: input.sessionId,
               requestId: input.requestId,
               content,
               streaming: true,
+            })
+          },
+          onAssistantMessage: content => {
+            emit({
+              type: 'assistant_message',
+              sessionId: input.sessionId,
+              requestId: input.requestId,
+              content,
+              streaming: false,
             })
           },
           onProgressMessage: content => {

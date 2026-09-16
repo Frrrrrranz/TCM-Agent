@@ -11,6 +11,7 @@ import type {
 import type { RuntimeConfig } from './config.js'
 import { abortableDelay } from './utils/cancellation.js'
 import { resolveMaxOutputTokens } from './utils/context.js'
+import { parseOpenAIStream } from './model-stream.js'
 
 const DEFAULT_MAX_RETRIES = 4
 const BASE_RETRY_DELAY_MS = 500
@@ -298,6 +299,11 @@ export class OpenAIModelAdapter implements ModelAdapter {
       requestBody.tool_choice = 'auto'
     }
 
+    if (options.onEvent) {
+      requestBody.stream = true
+      requestBody.stream_options = { include_usage: true }
+    }
+
     const maxRetries = getRetryLimit()
     let response: Response | null = null
 
@@ -318,7 +324,32 @@ export class OpenAIModelAdapter implements ModelAdapter {
       throw new Error('Model request failed before receiving a response')
     }
 
-    const data = (await readJsonBody(response)) as OpenAIResponse
+    let streamUsage: ProviderUsage | undefined
+    let data: OpenAIResponse
+    if (response.ok && options.onEvent) {
+      const streamed = await parseOpenAIStream(response, options.onEvent)
+      streamUsage = streamed.usage
+      data = {
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: streamed.content,
+            reasoning_content: streamed.reasoningContent,
+            tool_calls: streamed.toolCalls.map(call => ({
+              id: call.id,
+              type: 'function',
+              function: {
+                name: call.toolName,
+                arguments: JSON.stringify(call.input),
+              },
+            })),
+          },
+          finish_reason: streamed.stopReason,
+        }],
+      }
+    } else {
+      data = (await readJsonBody(response)) as OpenAIResponse
+    }
 
     if (!response.ok) {
       throw new Error(extractErrorMessage(data, response.status))
@@ -327,7 +358,7 @@ export class OpenAIModelAdapter implements ModelAdapter {
     const choice = data.choices?.[0]
     const responseMessage = choice?.message
     const finishReason = choice?.finish_reason
-    const usage = normalizeOpenAIUsage(data.usage)
+    const usage = streamUsage ?? normalizeOpenAIUsage(data.usage)
 
     // NOTE: 将 DeepSeek 的 reasoning_content（推理链）映射为 thinkingBlocks。
     // 这样在 TUI 中可以与 Claude 的 thinking block 使用同一渲染逻辑，
